@@ -5,6 +5,7 @@ import {
   getUtcDayKey,
   hashToIndex,
   normalizeMedia,
+  parseBasicAuthPassword,
   parseMedia,
   serializePost,
 } from "./server-utils.js";
@@ -21,6 +22,12 @@ test("hashToIndex is deterministic and stays within bounds", () => {
   assert.equal(first, second);
   assert.ok(first >= 0);
   assert.ok(first < 8);
+});
+
+test("parseBasicAuthPassword extracts the password from a basic auth header", () => {
+  const header = `Basic ${Buffer.from("beta:secret-pass").toString("base64")}`;
+  assert.equal(parseBasicAuthPassword(header), "secret-pass");
+  assert.equal(parseBasicAuthPassword("Bearer nope"), null);
 });
 
 test("normalizeMedia drops invalid entries and keeps valid media", () => {

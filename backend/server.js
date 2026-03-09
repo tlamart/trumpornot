@@ -7,6 +7,7 @@ import {
   getUtcDayKey,
   hashToIndex,
   normalizeMedia,
+  parseBasicAuthPassword,
   parseMedia,
   serializePost,
 } from "./server-utils.js";
@@ -18,6 +19,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const extensionApiKey = process.env.EXTENSION_API_KEY || "change-me";
 const adminPageKey = process.env.ADMIN_PAGE_KEY || extensionApiKey;
+const betaPagePassword = process.env.BETA_PAGE_PASSWORD || "";
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
@@ -45,8 +47,26 @@ function assertAdminAuth(req, res, next) {
   return next();
 }
 
+function assertBetaAuth(req, res, next) {
+  if (!betaPagePassword) {
+    return res.status(404).send("Not found");
+  }
+
+  const password = parseBasicAuthPassword(req.header("authorization"));
+  if (password !== betaPagePassword) {
+    res.set("WWW-Authenticate", 'Basic realm="TrumpOrNot Beta"');
+    return res.status(401).send("Authentication required");
+  }
+
+  return next();
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+app.get("/beta", assertBetaAuth, (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "beta.html"));
 });
 
 app.post("/api/posts", assertExtensionAuth, (req, res) => {
@@ -167,6 +187,48 @@ app.get("/api/daily", (_req, res) => {
     post: serializePost(chosen),
     answer: {
       is_real: Boolean(chosen.is_real),
+    },
+  });
+});
+
+app.get("/api/beta/next", assertBetaAuth, (req, res) => {
+  const excludedId = Number.parseInt(req.query.exclude_id, 10);
+  const hasExcludedId = Number.isInteger(excludedId) && excludedId > 0;
+
+  const randomPost = hasExcludedId
+    ? db
+        .prepare(
+          `
+          SELECT id, text, url, author, media_json, is_real, created_at
+          FROM posts
+          WHERE status = 'approved' AND id != ?
+          ORDER BY RANDOM()
+          LIMIT 1
+        `,
+        )
+        .get(excludedId)
+    : null;
+
+  const fallback = randomPost || db
+    .prepare(
+      `
+      SELECT id, text, url, author, media_json, is_real, created_at
+      FROM posts
+      WHERE status = 'approved'
+      ORDER BY RANDOM()
+      LIMIT 1
+    `,
+    )
+    .get();
+
+  if (!fallback) {
+    return res.status(404).json({ error: "No approved posts in DB yet" });
+  }
+
+  return res.json({
+    post: serializePost(fallback),
+    answer: {
+      is_real: Boolean(fallback.is_real),
     },
   });
 });

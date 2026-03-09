@@ -97,12 +97,15 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 - `GET /api/health`
 - `POST /api/posts` (requires header `x-extension-key`)
 - `GET /api/daily`
+- `GET /beta` (HTTP Basic Auth with `BETA_PAGE_PASSWORD`)
+- `GET /api/beta/next` (HTTP Basic Auth with `BETA_PAGE_PASSWORD`)
 - `GET /api/admin/review` (requires header `x-admin-key`)
 
 ## Configuration
 
 - `EXTENSION_API_KEY`: API key for the Firefox extension (required for POST requests)
 - `ADMIN_PAGE_KEY`: API key for admin endpoints (defaults to `EXTENSION_API_KEY`)
+- `BETA_PAGE_PASSWORD`: password for the protected `/beta` route and beta API
 - `PORT`: Backend port (default: 3000, Docker: 8080)
 
 For production, set these securely via environment variables or in `docker-compose.yml`.
