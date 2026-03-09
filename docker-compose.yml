@@ -6,8 +6,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - EXTENSION_API_KEY=your-secure-api-key-here
-      - ADMIN_PAGE_KEY=your-admin-key-here
+      - EXTENSION_API_KEY=${EXTENSION_API_KEY}
+      - ADMIN_PAGE_KEY=${ADMIN_PAGE_KEY}
       - PORT=8080
     volumes:
       - ./backend/data.db:/app/data.db  # Persist SQLite database
