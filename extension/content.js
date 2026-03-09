@@ -1,12 +1,32 @@
 const BUTTON_CLASS = "trumpornot-save-real-btn";
 const STYLE_ID = "trumpornot-inline-style";
 const TOAST_ID = "trumpornot-inline-toast";
+const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
+const ENHANCED_ATTR = "trumpornotEnhanced";
+const {
+  extractPost,
+  getFetchErrorMessage,
+  getSettings,
+  savePost,
+} = globalThis.TrumpOrNotExtension;
 
 injectStyles();
-scanPosts();
+scanPosts(document);
 
-const observer = new MutationObserver(() => {
-  scanPosts();
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    mutation.addedNodes.forEach((node) => {
+      if (!(node instanceof Element)) {
+        return;
+      }
+
+      if (node.matches && node.matches(ARTICLE_SELECTOR)) {
+        enhanceArticle(node);
+      }
+
+      scanPosts(node);
+    });
+  });
 });
 
 observer.observe(document.documentElement, {
@@ -73,36 +93,13 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-function scanPosts() {
-  const articles = document.querySelectorAll('article[data-testid="tweet"]');
+function scanPosts(rootNode) {
+  const articles = rootNode.querySelectorAll
+    ? rootNode.querySelectorAll(ARTICLE_SELECTOR)
+    : [];
   articles.forEach((article) => {
-    if (article.dataset.trumpornotEnhanced === "true") {
-      return;
-    }
-
-    const actionBar = findActionBar(article);
-    if (!actionBar) {
-      return;
-    }
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = BUTTON_CLASS;
-    button.textContent = "Save as Real";
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      saveArticle(button, article);
-    });
-
-    actionBar.appendChild(button);
-    article.dataset.trumpornotEnhanced = "true";
+    enhanceArticle(article);
   });
-}
-
-function findActionBar(article) {
-  const candidates = article.querySelectorAll('div[role="group"]');
-  return candidates[candidates.length - 1] || null;
 }
 
 async function saveArticle(button, article) {
@@ -114,9 +111,7 @@ async function saveArticle(button, article) {
     return;
   }
 
-  const settings = await browser.storage.local.get(["apiBase", "apiKey"]);
-  const apiBase = normalizeApiBase(settings.apiBase);
-  const apiKey = (settings.apiKey || "").trim();
+  const { apiBase, apiKey } = await getSettings(browser.storage);
 
   if (!apiBase || !apiKey) {
     flashButton(button, "Setup required", true);
@@ -143,14 +138,7 @@ async function saveArticle(button, article) {
 
   let result;
   try {
-    result = await fetch(`${apiBase}/api/posts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-extension-key": apiKey,
-      },
-      body: JSON.stringify(payload),
-    });
+    result = await savePost(fetch, apiBase, apiKey, payload);
   } catch (error) {
     console.error("[TrumpOrNot] Request failed", error);
     showToast(getFetchErrorMessage(error, apiBase), true);
@@ -188,127 +176,33 @@ function flashButton(button, text, isError) {
   restoreButton(button, "Save as Real", text, isError);
 }
 
-function extractPost(article) {
-  const link = article.querySelector('a[href*="/status/"]');
-  const href = link ? link.getAttribute("href") : "";
-  const statusMatch = href ? href.match(/^\/([^/]+)\/status\/(\d+)/) : null;
-
-  const textNode = article.querySelector('[data-testid="tweetText"]');
-  const text = textNode ? textNode.innerText.trim() : "";
-  const media = extractMedia(article);
-
-  if (!statusMatch || (!text && !media)) {
-    return null;
+function enhanceArticle(article) {
+  if (article.dataset[ENHANCED_ATTR] === "true") {
+    return;
   }
 
-  const author = statusMatch[1];
-  const postId = statusMatch[2];
-  const timeNode = article.querySelector("time");
-  const createdAt = timeNode ? timeNode.getAttribute("datetime") : null;
-
-  return {
-    id: postId,
-    author,
-    text,
-    url: `https://x.com/${author}/status/${postId}`,
-    media,
-    createdAt,
-  };
-}
-
-function extractMedia(article) {
-  const images = Array.from(article.querySelectorAll('img[src*="pbs.twimg.com/media"]'))
-    .map((img) => img.getAttribute("src"))
-    .filter(Boolean)
-    .map((url) => ({ url }));
-
-  const uniqueImages = dedupeBy(images, (item) => item.url);
-
-  const videoEl = article.querySelector("video");
-  const video = videoEl
-    ? {
-        url: normalizeVideoUrl(videoEl.currentSrc || videoEl.getAttribute("src") || null),
-        posterUrl: videoEl.getAttribute("poster") || null,
-      }
-    : null;
-
-  if (!uniqueImages.length && !video) {
-    return null;
+  const actionBar = findActionBar(article);
+  if (!actionBar) {
+    return;
   }
 
-  return {
-    images: uniqueImages,
-    video,
-  };
-}
-
-function dedupeBy(items, getKey) {
-  const seen = new Set();
-  return items.filter((item) => {
-    const key = getKey(item);
-    if (!key || seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = BUTTON_CLASS;
+  button.textContent = "Save as Real";
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    saveArticle(button, article);
   });
+
+  actionBar.appendChild(button);
+  article.dataset[ENHANCED_ATTR] = "true";
 }
 
-function normalizeApiBase(value) {
-  if (!value || typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim().replace(/\/+$/, "");
-}
-
-function getFetchErrorMessage(error, apiBase) {
-  const url = safeUrl(apiBase);
-  if (!url) {
-    return "Bad API URL";
-  }
-
-  if (!isSupportedLocalApi(url)) {
-    return "Use localhost/127.0.0.1";
-  }
-
-  const message = error && typeof error.message === "string" ? error.message : "";
-  if (/NetworkError|Failed to fetch|fetch/i.test(message)) {
-    return "Request blocked or failed";
-  }
-
-  return "Request failed";
-}
-
-function safeUrl(value) {
-  try {
-    return new URL(value);
-  } catch (_error) {
-    return null;
-  }
-}
-
-function isSupportedLocalApi(url) {
-  const supportedHosts = new Set(["localhost", "127.0.0.1"]);
-  return (url.protocol === "http:" || url.protocol === "https:") && supportedHosts.has(url.hostname);
-}
-
-function normalizeVideoUrl(value) {
-  if (!value || typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.startsWith("blob:")) {
-    return null;
-  }
-
-  // Keep only direct file URLs the app can replay later.
-  if (!/\.(mp4|webm|ogg)(\?|#|$)/i.test(trimmed)) {
-    return null;
-  }
-
-  return trimmed;
+function findActionBar(article) {
+  const candidates = article.querySelectorAll('div[role="group"]');
+  return candidates[candidates.length - 1] || null;
 }
 
 let toastTimeoutId = null;

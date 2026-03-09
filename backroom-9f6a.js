@@ -11,8 +11,11 @@ const {
 const API_BASE = getApiBase();
 const STORAGE_KEY = "adminPageKey";
 
+const adminOverlay = document.getElementById("adminOverlay");
+const adminOverlayForm = document.getElementById("adminOverlayForm");
 const adminKeyInput = document.getElementById("adminKey");
 const saveAdminKeyBtn = document.getElementById("saveAdminKeyBtn");
+const changeAdminKeyBtn = document.getElementById("changeAdminKeyBtn");
 const adminStatus = document.getElementById("adminStatus");
 const dateLabel = document.getElementById("dateLabel");
 const postCard = document.getElementById("postCard");
@@ -35,7 +38,10 @@ const nextBtn = document.getElementById("nextBtn");
 
 let currentPost = null;
 
-saveAdminKeyBtn.addEventListener("click", saveAdminKey);
+adminOverlayForm.addEventListener("submit", saveAdminKey);
+changeAdminKeyBtn.addEventListener("click", () => {
+  openAdminOverlay("Update the admin key to continue.", false);
+});
 nextBtn.addEventListener("click", () => loadRandomPost(true));
 realBtn.addEventListener("click", () => submitGuess(true));
 fakeBtn.addEventListener("click", () => submitGuess(false));
@@ -43,33 +49,51 @@ fakeBtn.addEventListener("click", () => submitGuess(false));
 init();
 
 async function init() {
+  disableGuessing(true);
   const savedKey = localStorage.getItem(STORAGE_KEY) || "";
   if (savedKey) {
     adminKeyInput.value = savedKey;
-    setAdminStatus("Key loaded");
-    await loadRandomPost(false);
+    const unlocked = await loadRandomPost(false, savedKey);
+    if (unlocked) {
+      closeAdminOverlay();
+      setAdminStatus("Unlocked");
+      return;
+    }
   } else {
-    setAdminStatus("Enter the admin key to unlock random review", true);
+    dateLabel.textContent = "Random review locked";
   }
+
+  openAdminOverlay("Enter the admin key to unlock random review.", true);
 }
 
-function saveAdminKey() {
+async function saveAdminKey(event) {
+  event.preventDefault();
   const key = adminKeyInput.value.trim();
   if (!key) {
     setAdminStatus("Admin key required", true);
     return;
   }
 
+  saveAdminKeyBtn.disabled = true;
+  setAdminStatus("Unlocking...", false);
+
+  const unlocked = await loadRandomPost(false, key);
+  if (!unlocked) {
+    saveAdminKeyBtn.disabled = false;
+    return;
+  }
+
   localStorage.setItem(STORAGE_KEY, key);
-  setAdminStatus("Key saved");
-  loadRandomPost(false);
+  setAdminStatus("Unlocked");
+  closeAdminOverlay();
+  saveAdminKeyBtn.disabled = false;
 }
 
-async function loadRandomPost(forceNewPost) {
-  const key = localStorage.getItem(STORAGE_KEY) || adminKeyInput.value.trim();
+async function loadRandomPost(forceNewPost, overrideKey = null) {
+  const key = overrideKey || localStorage.getItem(STORAGE_KEY) || adminKeyInput.value.trim();
   if (!key) {
     setAdminStatus("Admin key required", true);
-    return;
+    return false;
   }
 
   disableGuessing(true);
@@ -92,14 +116,14 @@ async function loadRandomPost(forceNewPost) {
   if (!response) {
     setAdminStatus("Backend request failed", true);
     dateLabel.textContent = "Random review unavailable";
-    return;
+    return false;
   }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     setAdminStatus(body.error || `Request failed (${response.status})`, true);
     dateLabel.textContent = "Random review unavailable";
-    return;
+    return false;
   }
 
   const data = await response.json();
@@ -118,6 +142,7 @@ async function loadRandomPost(forceNewPost) {
   await renderCurrentPost();
   disableGuessing(false);
   setAdminStatus("Unlocked");
+  return true;
 }
 
 async function renderCurrentPost() {
@@ -185,9 +210,21 @@ function submitGuess(userSaysReal) {
 function disableGuessing(disabled) {
   realBtn.disabled = disabled;
   fakeBtn.disabled = disabled;
+  nextBtn.disabled = disabled;
 }
 
 function setAdminStatus(message, isError = false) {
   adminStatus.textContent = message;
   adminStatus.classList.toggle("error", isError);
+}
+
+function openAdminOverlay(message, isError = false) {
+  adminOverlay.classList.remove("hidden");
+  adminKeyInput.focus();
+  adminKeyInput.select();
+  setAdminStatus(message, isError);
+}
+
+function closeAdminOverlay() {
+  adminOverlay.classList.add("hidden");
 }

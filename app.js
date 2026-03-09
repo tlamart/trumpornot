@@ -48,6 +48,7 @@ const posts = [
 const {
   formatPostTime,
   getApiBase,
+  getUtcDayKey,
   hashToIndex,
   isVerifiedHandle,
   renderEmbeddedTweet,
@@ -75,17 +76,11 @@ const details = document.getElementById("details");
 const realBtn = document.getElementById("realBtn");
 const fakeBtn = document.getElementById("fakeBtn");
 
-function getTodayKey() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 async function render() {
-  const todayKey = getTodayKey();
-  const todayPost = await getDailyPost(todayKey);
+  const fallbackDayKey = getUtcDayKey();
+  const daily = await getDailyPost(fallbackDayKey);
+  const todayKey = daily.day;
+  const todayPost = daily.post;
   const storedGuess = localStorage.getItem(`guess:${todayKey}`);
 
   const date = new Date();
@@ -145,25 +140,29 @@ async function getDailyPost(todayKey) {
 
     const data = await response.json();
     return {
-      text: data.post.text,
-      isReal: Boolean(data.answer.is_real),
-      detail: data.post.url
-        ? "From your curated database."
-        : "From your curated database.",
-      source: data.post.url || null,
-      media: data.post.media || null,
-      displayName: "Donald J. Trump",
-      handle: data.post.author ? `@${data.post.author}` : "@realDonaldTrump",
-      createdAt: data.post.created_at || null,
+      day: data.day || todayKey,
+      post: {
+        text: data.post.text,
+        isReal: Boolean(data.answer.is_real),
+        detail: "From your curated database.",
+        source: data.post.url || null,
+        media: data.post.media || null,
+        displayName: "Donald J. Trump",
+        handle: data.post.author ? `@${data.post.author}` : "@realDonaldTrump",
+        createdAt: data.post.created_at || null,
+      },
     };
   } catch (_error) {
     const index = hashToIndex(todayKey, posts.length);
     return {
-      ...posts[index],
-      media: null,
-      displayName: "Donald J. Trump",
-      handle: "@realDonaldTrump",
-      createdAt: null,
+      day: todayKey,
+      post: {
+        ...posts[index],
+        media: null,
+        displayName: "Donald J. Trump",
+        handle: "@realDonaldTrump",
+        createdAt: null,
+      },
     };
   }
 }

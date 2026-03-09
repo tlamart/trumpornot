@@ -27,6 +27,13 @@
     return origin.replace(/\/$/, "");
   }
 
+  function getUtcDayKey(date = new Date()) {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(date.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
   function hashToIndex(str, mod) {
     let hash = 0;
     for (let i = 0; i < str.length; i += 1) {
@@ -206,6 +213,7 @@
   window.TrumpOrNotClient = {
     formatPostTime,
     getApiBase,
+    getUtcDayKey,
     hashToIndex,
     isVerifiedHandle,
     renderEmbeddedTweet,

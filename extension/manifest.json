@@ -8,10 +8,8 @@
     "tabs",
     "storage",
     "https://x.com/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*",
-    "https://localhost/*",
-    "https://127.0.0.1/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "browser_action": {
     "default_title": "TrumpOrNot Curator",
@@ -20,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["https://x.com/*"],
-      "js": ["content.js"],
+      "js": ["shared.js", "content.js"],
       "run_at": "document_idle"
     }
   ]

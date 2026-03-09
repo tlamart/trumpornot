@@ -2,11 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  getUtcDayKey,
   hashToIndex,
   normalizeMedia,
   parseMedia,
   serializePost,
 } from "./server-utils.js";
+
+test("getUtcDayKey uses UTC rather than local timezone", () => {
+  const date = new Date("2026-03-09T23:30:00-08:00");
+  assert.equal(getUtcDayKey(date), "2026-03-10");
+});
 
 test("hashToIndex is deterministic and stays within bounds", () => {
   const first = hashToIndex("2026-03-09", 8);
