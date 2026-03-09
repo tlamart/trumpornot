@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trump or Not?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <p class="eyebrow">Daily Challenge</p>
+        <h1>Trump or Not?</h1>
+        <p class="subtitle">
+          One post per day. Decide if it is a real Donald Trump X post or a fake.
+        </p>
+      </header>
+
+      <section class="card" aria-live="polite">
+        <p id="dateLabel" class="date-label"></p>
+
+        <article id="postCard" class="x-post" aria-label="X post preview">
+          <img class="x-avatar" src="./trump.jpg" alt="Donald Trump profile picture" />
+          <div class="x-main">
+            <header class="x-meta">
+              <span id="xDisplayName" class="x-display">Donald J. Trump</span>
+              <span id="xVerified" class="x-verified" aria-label="Verified account" title="Verified">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M22.25 12c0-1.43-1.15-2.47-1.6-3.72-.47-1.3-.37-2.84-1.24-3.71-.88-.88-2.42-.78-3.72-1.25C14.47 2.9 13.43 1.75 12 1.75S9.53 2.9 8.28 3.35c-1.3.47-2.84.37-3.71 1.24-.88.88-.78 2.42-1.25 3.72C2.9 9.53 1.75 10.57 1.75 12s1.15 2.47 1.6 3.72c.47 1.3.37 2.84 1.24 3.71.88.88 2.42.78 3.72 1.25 1.22.42 2.26 1.57 3.69 1.57s2.47-1.15 3.72-1.6c1.3-.47 2.84-.37 3.71-1.24.88-.88.78-2.42 1.25-3.72.42-1.22 1.57-2.26 1.57-3.69Z"
+                  />
+                  <path
+                    class="check"
+                    d="m10.5 15.7-2.9-2.9 1.4-1.4 1.5 1.5 4.5-4.5 1.4 1.4-5.9 5.9Z"
+                  />
+                </svg>
+              </span>
+              <span id="xHandle" class="x-handle">@realDonaldTrump</span>
+              <span class="x-dot">·</span>
+              <time id="xTime" class="x-time">now</time>
+            </header>
+
+            <p id="postText" class="x-text">Loading...</p>
+            <div id="postMedia" class="x-media hidden"></div>
+            <div id="embedContainer" class="tweet-embed hidden"></div>
+
+            <footer class="x-actions" aria-hidden="true">
+              <span class="x-action-item">
+                <span class="x-action-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M1.75 12c0-5.66 4.59-10.25 10.25-10.25S22.25 6.34 22.25 12 17.66 22.25 12 22.25c-1.8 0-3.5-.46-4.98-1.27l-4.27 1.08 1.15-4.11A10.2 10.2 0 0 1 1.75 12Zm10.25-8.25A8.25 8.25 0 0 0 5.67 17.2l.33.49-.58 2.06 2.13-.54.46.25A8.25 8.25 0 1 0 12 3.75Z" />
+                </svg>
+                </span>
+                <span id="xCountReply" class="x-action-count">0</span>
+              </span>
+              <span class="x-action-item">
+                <span class="x-action-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4.25 3.75h9v2h-5.6l8.6 8.6v-5.6h2v9h-9v-2h5.59l-8.59-8.6v5.6h-2v-9Z" />
+                </svg>
+                </span>
+                <span id="xCountRepost" class="x-action-count">0</span>
+              </span>
+              <span class="x-action-item">
+                <span class="x-action-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 16.5 3C19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z" />
+                </svg>
+                </span>
+                <span id="xCountLike" class="x-action-count">0</span>
+              </span>
+              <span class="x-action-item">
+                <span class="x-action-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12.9 3.44a1 1 0 0 1 1.18.15l6 5.25a1 1 0 1 1-1.32 1.5L14 6.17V15a1 1 0 1 1-2 0V6.17l-4.76 4.17a1 1 0 0 1-1.32-1.5l6-5.25a1 1 0 0 1 .98-.15ZM5 14a1 1 0 0 1 1 1v3h12v-3a1 1 0 1 1 2 0v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1Z" />
+                </svg>
+                </span>
+                <span id="xCountView" class="x-action-count">0</span>
+              </span>
+            </footer>
+          </div>
+        </article>
+
+        <div id="actions" class="actions">
+          <button id="realBtn" class="btn btn-real" type="button">Real</button>
+          <button id="fakeBtn" class="btn btn-fake" type="button">Fake</button>
+        </div>
+
+        <p id="result" class="result"></p>
+        <p id="details" class="details"></p>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

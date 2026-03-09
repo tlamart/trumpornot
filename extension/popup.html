@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>TrumpOrNot Curator</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        width: 290px;
+        margin: 0;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      .row {
+        margin-bottom: 8px;
+      }
+      label {
+        font-size: 12px;
+        color: #444;
+      }
+      input {
+        width: 100%;
+        padding: 6px;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      #saveSettings { background: #1e4bb8; color: #fff; }
+      #setupHint {
+        margin: 0 0 10px;
+        font-size: 12px;
+        color: #555;
+      }
+      #status {
+        margin-top: 8px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Extension Settings</h1>
+
+    <div id="settingsPanel">
+      <p id="setupHint">Set the backend URL and extension key once. The X page buttons will reuse them for future saves.</p>
+
+      <div class="row">
+        <label for="apiBase">API Base URL</label>
+        <input id="apiBase" value="http://localhost:3000" />
+      </div>
+
+      <div class="row">
+        <label for="apiKey">Extension API Key</label>
+        <input id="apiKey" type="password" placeholder="change-me" />
+      </div>
+
+      <button id="saveSettings" type="button">Save Settings</button>
+    </div>
+    <div id="status"></div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

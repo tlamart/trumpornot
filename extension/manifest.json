@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "TrumpOrNot Curator",
+  "version": "0.1.0",
+  "description": "Capture X posts and save them to your TrumpOrNot database.",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "https://x.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://localhost/*",
+    "https://127.0.0.1/*"
+  ],
+  "browser_action": {
+    "default_title": "TrumpOrNot Curator",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
