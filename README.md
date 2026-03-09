@@ -8,7 +8,11 @@ Daily game: user sees one post and guesses if it is real or fake.
 - `backend/`: Express + SQLite API
 - `extension/`: Firefox extension to curate posts from x.com
 
-## 1) Run backend
+## Local Development
+
+### Option 1: Node.js + HTTP Server
+
+#### 1) Run backend
 
 ```bash
 cd backend
@@ -18,7 +22,7 @@ EXTENSION_API_KEY=change-me npm start
 
 Backend runs on `http://localhost:3000`.
 
-## 2) Run website
+#### 2) Run website
 
 From project root:
 
@@ -31,18 +35,52 @@ Open `http://localhost:8000`.
 The website tries `GET http://localhost:3000/api/daily` first.
 If backend has no posts yet or is offline, it falls back to local sample posts.
 
-## 3) Install Firefox extension (temporary)
+### Option 2: Docker (Local or VPS)
+
+#### Build the image locally:
+
+```bash
+docker build -t thibaldocker/trumpornot:latest .
+```
+
+#### Run with Docker Compose:
+
+```bash
+# Update environment variables in docker-compose.yml first
+docker-compose up -d
+```
+
+Frontend and API available at `http://localhost:8080`.
+
+#### Deploy to VPS:
+
+1. Push to Docker Hub:
+   ```bash
+   docker push thibaldocker/trumpornot:latest
+   ```
+
+2. On VPS, pull and run:
+   ```bash
+   docker pull thibaldocker/trumpornot:latest
+   docker-compose up -d
+   ```
+
+App runs on port 8080 (configurable in `docker-compose.yml`).
+
+## Firefox Extension
+
+### 1) Install (temporary)
 
 1. Open Firefox.
 2. Go to `about:debugging` -> `This Firefox`.
 3. Click `Load Temporary Add-on...`.
 4. Select `extension/manifest.json`.
 
-## 4) Use extension
+### 2) Use extension
 
 1. Click extension icon.
 2. On first use, set:
-   - API Base URL: `http://localhost:3000`
+   - API Base URL: `http://localhost:3000` (or your VPS URL)
    - Extension API Key: same as `EXTENSION_API_KEY`
 3. Click `Save Settings`.
 4. Open X and wait for posts to render.
@@ -59,7 +97,17 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 - `POST /api/posts` (requires header `x-extension-key`)
 - `GET /api/daily`
 
+## Configuration
+
+- `EXTENSION_API_KEY`: API key for the Firefox extension (required for POST requests)
+- `ADMIN_PAGE_KEY`: API key for admin endpoints (defaults to `EXTENSION_API_KEY`)
+- `PORT`: Backend port (default: 3000, Docker: 8080)
+
+For production, set these securely via environment variables or in `docker-compose.yml`.
+
 ## Notes
 
 - Keep `EXTENSION_API_KEY` non-default in real usage.
 - Current extension extraction targets single-post pages and may need updates if X DOM changes.
+- For VPS deployment, consider using Nginx as a reverse proxy or enabling HTTPS on port 8080.
+- SQLite database (`backend/data.db`) is persisted in Docker and should be backed up regularly.
