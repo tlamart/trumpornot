@@ -8,5 +8,5 @@ services:
       - ADMIN_PAGE_KEY=${ADMIN_PAGE_KEY}
       - PORT=8080
     volumes:
-      - ./backend/data.db:/app/data.db  # Persist SQLite database
+      - ./backend/data.db:/app/backend/data.db  # Persist SQLite database
     restart: unless-stopped
