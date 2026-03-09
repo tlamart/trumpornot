@@ -1,4 +1,26 @@
-const API_BASE = "http://localhost:3000";
+function getApiBase() {
+  const configuredBase =
+    globalThis.TRUMPORNOT_API_BASE ||
+    document.documentElement.dataset.apiBase ||
+    null;
+
+  if (configuredBase) {
+    return configuredBase.replace(/\/$/, "");
+  }
+
+  const { protocol, hostname, port, origin } = window.location;
+  const isLocalStaticDev =
+    hostname === "localhost" &&
+    (port === "8000" || port === "8080" || port === "4173" || port === "5173");
+
+  if (isLocalStaticDev) {
+    return `${protocol}//${hostname}:3000`;
+  }
+
+  return origin.replace(/\/$/, "");
+}
+
+const API_BASE = getApiBase();
 const STORAGE_KEY = "adminPageKey";
 
 const adminKeyInput = document.getElementById("adminKey");

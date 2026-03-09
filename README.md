@@ -32,8 +32,9 @@ python3 -m http.server 8000
 
 Open `http://localhost:8000`.
 
-The website tries `GET http://localhost:3000/api/daily` first.
-If backend has no posts yet or is offline, it falls back to local sample posts.
+When the frontend is served from a local static dev server on `localhost`, it tries `GET http://localhost:3000/api/daily`.
+When it is served by the backend itself or through your reverse proxy, it uses the same origin as the page.
+If the backend has no posts yet or is offline, it falls back to local sample posts.
 
 ### Option 2: Docker (Local or VPS)
 
