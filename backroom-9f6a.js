@@ -42,7 +42,7 @@ adminOverlayForm.addEventListener("submit", saveAdminKey);
 changeAdminKeyBtn.addEventListener("click", () => {
   openAdminOverlay("Update the admin key to continue.", false);
 });
-nextBtn.addEventListener("click", () => loadRandomPost(true));
+nextBtn.addEventListener("click", () => loadReviewPost(true));
 realBtn.addEventListener("click", () => submitGuess(true));
 fakeBtn.addEventListener("click", () => submitGuess(false));
 
@@ -53,7 +53,7 @@ async function init() {
   const savedKey = localStorage.getItem(STORAGE_KEY) || "";
   if (savedKey) {
     adminKeyInput.value = savedKey;
-    const unlocked = await loadRandomPost(false, savedKey);
+    const unlocked = await loadReviewPost(false, savedKey);
     if (unlocked) {
       closeAdminOverlay();
       setAdminStatus("Unlocked");
@@ -77,7 +77,7 @@ async function saveAdminKey(event) {
   saveAdminKeyBtn.disabled = true;
   setAdminStatus("Unlocking...", false);
 
-  const unlocked = await loadRandomPost(false, key);
+  const unlocked = await loadReviewPost(false, key);
   if (!unlocked) {
     saveAdminKeyBtn.disabled = false;
     return;
@@ -89,7 +89,7 @@ async function saveAdminKey(event) {
   saveAdminKeyBtn.disabled = false;
 }
 
-async function loadRandomPost(forceNewPost, overrideKey = null) {
+async function loadReviewPost(loadNextPost, overrideKey = null) {
   const key = overrideKey || localStorage.getItem(STORAGE_KEY) || adminKeyInput.value.trim();
   if (!key) {
     setAdminStatus("Admin key required", true);
@@ -99,15 +99,15 @@ async function loadRandomPost(forceNewPost, overrideKey = null) {
   disableGuessing(true);
   result.textContent = "";
   details.textContent = "";
-  dateLabel.textContent = "Loading random review...";
+  dateLabel.textContent = "Loading review post...";
 
   const params = new URLSearchParams();
-  if (forceNewPost && currentPost && currentPost.id) {
-    params.set("exclude_id", String(currentPost.id));
+  if (loadNextPost && currentPost && currentPost.id) {
+    params.set("after_id", String(currentPost.id));
   }
 
   const query = params.toString();
-  const response = await fetch(`${API_BASE}/api/admin/random${query ? `?${query}` : ""}`, {
+  const response = await fetch(`${API_BASE}/api/admin/review${query ? `?${query}` : ""}`, {
     headers: {
       "x-admin-key": key,
     },
@@ -115,14 +115,14 @@ async function loadRandomPost(forceNewPost, overrideKey = null) {
 
   if (!response) {
     setAdminStatus("Backend request failed", true);
-    dateLabel.textContent = "Random review unavailable";
+    dateLabel.textContent = "Review unavailable";
     return false;
   }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     setAdminStatus(body.error || `Request failed (${response.status})`, true);
-    dateLabel.textContent = "Random review unavailable";
+    dateLabel.textContent = "Review unavailable";
     return false;
   }
 
@@ -135,7 +135,7 @@ async function loadRandomPost(forceNewPost, overrideKey = null) {
     media: data.post.media || null,
     handle: data.post.author ? `@${data.post.author}` : "@realDonaldTrump",
     createdAt: data.post.created_at || null,
-    detail: "Review mode. Unlimited guesses, one post at a time.",
+    detail: "Review mode. Posts are shown in archive order, one at a time.",
     displayName: "Donald J. Trump",
   };
 

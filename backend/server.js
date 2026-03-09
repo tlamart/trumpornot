@@ -171,47 +171,35 @@ app.get("/api/daily", (_req, res) => {
   });
 });
 
-app.get("/api/admin/random", assertAdminAuth, (req, res) => {
-  const excludedId = Number.parseInt(req.query.exclude_id, 10);
-  const hasExcludedId = Number.isInteger(excludedId) && excludedId > 0;
+app.get("/api/admin/review", assertAdminAuth, (req, res) => {
+  const afterId = Number.parseInt(req.query.after_id, 10);
+  const hasAfterId = Number.isInteger(afterId) && afterId > 0;
 
-  const chosen = hasExcludedId
+  const nextPost = hasAfterId
     ? db
         .prepare(
           `
           SELECT id, text, url, author, media_json, is_real, created_at
           FROM posts
-          WHERE status = 'approved' AND id != ?
-          ORDER BY RANDOM()
+          WHERE status = 'approved' AND id > ?
+          ORDER BY id ASC
           LIMIT 1
         `,
         )
-        .get(excludedId)
+        .get(afterId)
     : null;
 
-  const fallback = hasExcludedId && !chosen
-    ? db
-        .prepare(
-          `
-          SELECT id, text, url, author, media_json, is_real, created_at
-          FROM posts
-          WHERE status = 'approved'
-          ORDER BY RANDOM()
-          LIMIT 1
-        `,
-        )
-        .get()
-    : chosen || db
-        .prepare(
-          `
-          SELECT id, text, url, author, media_json, is_real, created_at
-          FROM posts
-          WHERE status = 'approved'
-          ORDER BY RANDOM()
-          LIMIT 1
-        `,
-        )
-        .get();
+  const fallback = nextPost || db
+    .prepare(
+      `
+      SELECT id, text, url, author, media_json, is_real, created_at
+      FROM posts
+      WHERE status = 'approved'
+      ORDER BY id ASC
+      LIMIT 1
+    `,
+    )
+    .get();
 
   if (!fallback) {
     return res.status(404).json({ error: "No approved posts in DB yet" });

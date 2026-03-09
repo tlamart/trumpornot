@@ -97,6 +97,7 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 - `GET /api/health`
 - `POST /api/posts` (requires header `x-extension-key`)
 - `GET /api/daily`
+- `GET /api/admin/review` (requires header `x-admin-key`)
 
 ## Configuration
 
