@@ -6,7 +6,7 @@ services:
     environment:
       - EXTENSION_API_KEY=${EXTENSION_API_KEY}
       - ADMIN_PAGE_KEY=${ADMIN_PAGE_KEY}
-      - BETA_PAGE_PASSWORD=${BETA_PAGE_PASSWORD}
+      - BETA_PAGE_KEY=${BETA_PAGE_KEY}
       - PORT=8080
     volumes:
       - ./backend/data.db:/app/backend/data.db  # Persist SQLite database

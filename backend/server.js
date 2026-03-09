@@ -7,7 +7,6 @@ import {
   getUtcDayKey,
   hashToIndex,
   normalizeMedia,
-  parseBasicAuthPassword,
   parseMedia,
   serializePost,
 } from "./server-utils.js";
@@ -19,7 +18,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const extensionApiKey = process.env.EXTENSION_API_KEY || "change-me";
 const adminPageKey = process.env.ADMIN_PAGE_KEY || extensionApiKey;
-const betaPagePassword = process.env.BETA_PAGE_PASSWORD || "";
+const betaPageKey = process.env.BETA_PAGE_KEY || adminPageKey;
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
@@ -48,16 +47,10 @@ function assertAdminAuth(req, res, next) {
 }
 
 function assertBetaAuth(req, res, next) {
-  if (!betaPagePassword) {
-    return res.status(404).send("Not found");
+  const key = req.header("x-beta-key");
+  if (!key || key !== betaPageKey) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
-
-  const password = parseBasicAuthPassword(req.header("authorization"));
-  if (password !== betaPagePassword) {
-    res.set("WWW-Authenticate", 'Basic realm="TrumpOrNot Beta"');
-    return res.status(401).send("Authentication required");
-  }
-
   return next();
 }
 
@@ -65,7 +58,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/beta", assertBetaAuth, (_req, res) => {
+app.get("/beta", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "beta.html"));
 });
 

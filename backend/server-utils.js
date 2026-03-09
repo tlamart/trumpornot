@@ -5,28 +5,6 @@ export function getUtcDayKey(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
-export function parseBasicAuthPassword(headerValue) {
-  if (!headerValue || typeof headerValue !== "string") {
-    return null;
-  }
-
-  const match = headerValue.match(/^Basic\s+(.+)$/i);
-  if (!match) {
-    return null;
-  }
-
-  try {
-    const decoded = Buffer.from(match[1], "base64").toString("utf8");
-    const separatorIndex = decoded.indexOf(":");
-    if (separatorIndex < 0) {
-      return null;
-    }
-    return decoded.slice(separatorIndex + 1);
-  } catch (_error) {
-    return null;
-  }
-}
-
 export function hashToIndex(str, mod) {
   let hash = 0;
   for (let i = 0; i < str.length; i += 1) {

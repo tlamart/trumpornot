@@ -14,6 +14,20 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div id="betaOverlay" class="admin-overlay" role="dialog" aria-modal="true" aria-labelledby="betaOverlayTitle">
+      <form id="betaOverlayForm" class="admin-modal card">
+        <p class="eyebrow">Beta Mode</p>
+        <h2 id="betaOverlayTitle" class="admin-modal-title">Enter Beta Key</h2>
+        <p class="admin-modal-copy">Unlock unlimited mode with the beta key. The prompt disappears after a successful unlock.</p>
+        <label class="admin-label" for="betaKey">Beta Key</label>
+        <div class="admin-gate-row">
+          <input id="betaKey" class="admin-input" type="password" placeholder="Same as backend beta key" />
+          <button id="saveBetaKeyBtn" class="btn btn-real admin-save-btn" type="submit">Unlock</button>
+        </div>
+        <p id="betaStatus" class="admin-status"></p>
+      </form>
+    </div>
+
     <main class="app">
       <header class="header">
         <p class="eyebrow">Beta Mode</p>
@@ -27,6 +41,7 @@
         <div class="admin-toolbar">
           <p id="dateLabel" class="date-label">Unlimited play</p>
           <div class="admin-toolbar-actions">
+            <button id="changeBetaKeyBtn" class="btn admin-ghost-btn" type="button">Change Key</button>
             <button id="nextBtn" class="btn admin-next-btn" type="button">Next Post</button>
           </div>
         </div>

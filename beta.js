@@ -9,7 +9,14 @@ const {
 } = window.TrumpOrNotClient;
 
 const API_BASE = getApiBase();
+const STORAGE_KEY = "betaPageKey";
 
+const betaOverlay = document.getElementById("betaOverlay");
+const betaOverlayForm = document.getElementById("betaOverlayForm");
+const betaKeyInput = document.getElementById("betaKey");
+const saveBetaKeyBtn = document.getElementById("saveBetaKeyBtn");
+const changeBetaKeyBtn = document.getElementById("changeBetaKeyBtn");
+const betaStatus = document.getElementById("betaStatus");
 const dateLabel = document.getElementById("dateLabel");
 const embedContainer = document.getElementById("embedContainer");
 const postText = document.getElementById("postText");
@@ -30,14 +37,65 @@ const nextBtn = document.getElementById("nextBtn");
 
 let currentPost = null;
 
+betaOverlayForm.addEventListener("submit", saveBetaKey);
+changeBetaKeyBtn.addEventListener("click", () => {
+  openBetaOverlay("Update the beta key to continue.", false);
+});
 nextBtn.addEventListener("click", () => loadPost(true));
 realBtn.addEventListener("click", () => submitGuess(true));
 fakeBtn.addEventListener("click", () => submitGuess(false));
 
-loadPost(false);
+init();
 
-async function loadPost(forceNext) {
-  disableGuessing(true);
+async function init() {
+  disableControls(true);
+  const savedKey = localStorage.getItem(STORAGE_KEY) || "";
+  if (savedKey) {
+    betaKeyInput.value = savedKey;
+    const unlocked = await loadPost(false, savedKey);
+    if (unlocked) {
+      closeBetaOverlay();
+      setBetaStatus("Unlocked");
+      return;
+    }
+  } else {
+    dateLabel.textContent = "Unlimited play locked";
+  }
+
+  openBetaOverlay("Enter the beta key to unlock unlimited play.", true);
+}
+
+async function saveBetaKey(event) {
+  event.preventDefault();
+  const key = betaKeyInput.value.trim();
+  if (!key) {
+    setBetaStatus("Beta key required", true);
+    return;
+  }
+
+  saveBetaKeyBtn.disabled = true;
+  setBetaStatus("Unlocking...", false);
+
+  const unlocked = await loadPost(false, key);
+  if (!unlocked) {
+    saveBetaKeyBtn.disabled = false;
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEY, key);
+  setBetaStatus("Unlocked");
+  closeBetaOverlay();
+  saveBetaKeyBtn.disabled = false;
+}
+
+async function loadPost(forceNext, overrideKey = null) {
+  const key = overrideKey || localStorage.getItem(STORAGE_KEY) || betaKeyInput.value.trim();
+  if (!key) {
+    setBetaStatus("Beta key required", true);
+    return false;
+  }
+
+  disableControls(true);
   result.textContent = "";
   details.textContent = "";
   dateLabel.textContent = "Loading beta round...";
@@ -48,20 +106,23 @@ async function loadPost(forceNext) {
   }
 
   const query = params.toString();
-  const response = await fetch(`${API_BASE}/api/beta/next${query ? `?${query}` : ""}`).catch(() => null);
+  const response = await fetch(`${API_BASE}/api/beta/next${query ? `?${query}` : ""}`, {
+    headers: {
+      "x-beta-key": key,
+    },
+  }).catch(() => null);
 
   if (!response) {
+    setBetaStatus("Backend request failed", true);
     dateLabel.textContent = "Beta unavailable";
-    details.textContent = "The beta route is protected or unreachable.";
-    return;
+    return false;
   }
 
   if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    setBetaStatus(body.error || `Request failed (${response.status})`, true);
     dateLabel.textContent = response.status === 401 ? "Beta locked" : "Beta unavailable";
-    details.textContent = response.status === 401
-      ? "Authentication failed for beta mode."
-      : `Unable to load beta post (${response.status}).`;
-    return;
+    return false;
   }
 
   const data = await response.json();
@@ -79,7 +140,9 @@ async function loadPost(forceNext) {
 
   dateLabel.textContent = `Beta round · post #${currentPost.id}`;
   await renderPostPresentation(currentPost);
-  disableGuessing(false);
+  disableControls(false);
+  setBetaStatus("Unlocked");
+  return true;
 }
 
 function submitGuess(userSaysReal) {
@@ -141,7 +204,24 @@ function renderMetrics(post) {
   );
 }
 
-function disableGuessing(disabled) {
+function disableControls(disabled) {
   realBtn.disabled = disabled;
   fakeBtn.disabled = disabled;
+  nextBtn.disabled = disabled;
+}
+
+function setBetaStatus(message, isError = false) {
+  betaStatus.textContent = message;
+  betaStatus.classList.toggle("error", isError);
+}
+
+function openBetaOverlay(message, isError = false) {
+  betaOverlay.classList.remove("hidden");
+  betaKeyInput.focus();
+  betaKeyInput.select();
+  setBetaStatus(message, isError);
+}
+
+function closeBetaOverlay() {
+  betaOverlay.classList.add("hidden");
 }
