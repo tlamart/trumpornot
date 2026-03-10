@@ -492,6 +492,11 @@ h1 {
   border-radius: 16px;
 }
 
+.admin-post-textarea {
+  min-height: 9rem;
+  resize: vertical;
+}
+
 @media (max-width: 640px) {
   .admin-gate-row,
   .admin-toolbar-actions,

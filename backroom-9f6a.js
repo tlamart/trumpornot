@@ -54,6 +54,7 @@ const nextPostsBtn = document.getElementById("nextPostsBtn");
 
 const fakeTopicInput = document.getElementById("fakeTopicInput");
 const fakeToneSelect = document.getElementById("fakeToneSelect");
+const fakePostInput = document.getElementById("fakePostInput");
 const generateFakeBtn = document.getElementById("generateFakeBtn");
 const saveFakeBtn = document.getElementById("saveFakeBtn");
 const generatorStatus = document.getElementById("generatorStatus");
@@ -99,7 +100,6 @@ const CLOSERS = [
 let currentPost = null;
 let activeTab = "review";
 let postsOffset = 0;
-let generatedFake = null;
 let currentListItems = [];
 
 adminOverlayForm.addEventListener("submit", saveAdminKey);
@@ -115,6 +115,7 @@ nextPostsBtn.addEventListener("click", () => loadPostsList(postsOffset + POSTS_P
 postsTableBody.addEventListener("click", handlePostsTableAction);
 generateFakeBtn.addEventListener("click", generateFakeDraft);
 saveFakeBtn.addEventListener("click", saveGeneratedFake);
+fakePostInput.addEventListener("input", syncFakeDraftPreview);
 
 TAB_IDS.forEach((tabId) => {
   tabs[tabId].button.addEventListener("click", () => activateTab(tabId));
@@ -126,6 +127,7 @@ async function init() {
   disableGuessing(true);
   saveFakeBtn.disabled = true;
   generatorTime.textContent = formatPostTime(new Date().toISOString());
+  syncFakeDraftPreview();
   const savedKey = sessionStorage.getItem(STORAGE_KEY) || "";
   if (savedKey) {
     adminKeyInput.value = savedKey;
@@ -475,16 +477,16 @@ function generateFakeDraft() {
   const opener = pickRandom(OPENERS[tone]).replaceAll("{topic}", topic.toUpperCase());
   const middle = pickRandom(MIDDLES);
   const closer = pickRandom(CLOSERS);
-  generatedFake = `${opener} ${middle} ${closer}`.trim();
-  generatorText.textContent = generatedFake;
-  generatorTime.textContent = formatPostTime(new Date().toISOString());
-  saveFakeBtn.disabled = false;
+  fakePostInput.value = `${opener} ${middle} ${closer}`.trim();
+  syncFakeDraftPreview();
   setGeneratorStatus("Draft generated.", false);
 }
 
 async function saveGeneratedFake() {
-  if (!generatedFake) {
-    setGeneratorStatus("Generate a draft first.", true);
+  const fakeText = fakePostInput.value.trim();
+
+  if (!fakeText) {
+    setGeneratorStatus("Write a post first.", true);
     return;
   }
 
@@ -494,7 +496,7 @@ async function saveGeneratedFake() {
   const response = await adminFetch("/api/admin/fakes", {
     method: "POST",
     body: JSON.stringify({
-      text: generatedFake,
+      text: fakeText,
       author: "realDonaldTrump",
       created_at: new Date().toISOString(),
       status: "approved",
@@ -517,7 +519,7 @@ async function saveGeneratedFake() {
   const data = await response.json();
   setGeneratorStatus(`Saved fake post #${data.post.id}.`, false);
   await loadPostsList(0);
-  saveFakeBtn.disabled = false;
+  syncFakeDraftPreview();
 }
 
 function disableGuessing(disabled) {
@@ -534,6 +536,13 @@ function setAdminStatus(message, isError = false) {
 function setGeneratorStatus(message, isError = false) {
   generatorStatus.textContent = message;
   generatorStatus.classList.toggle("error", isError);
+}
+
+function syncFakeDraftPreview() {
+  const value = fakePostInput.value.trim();
+  generatorText.textContent = value || "Write a fake post draft here.";
+  generatorTime.textContent = formatPostTime(new Date().toISOString());
+  saveFakeBtn.disabled = !value;
 }
 
 function openAdminOverlay(message, isError = false) {
