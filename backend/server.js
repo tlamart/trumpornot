@@ -211,6 +211,15 @@ function assertBetaAuth(req, res, next) {
   return next();
 }
 
+function parsePositiveInt(value, fallback, max) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return fallback;
+  }
+
+  return Math.min(parsed, max);
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
@@ -455,6 +464,114 @@ app.get("/api/admin/review", assertAdminAuth, (req, res) => {
     post: serializePost(fallback),
     answer: {
       is_real: Boolean(fallback.is_real),
+    },
+  });
+});
+
+app.get("/api/admin/posts", assertAdminAuth, (req, res) => {
+  const limit = Math.max(1, parsePositiveInt(req.query.limit, 25, 100));
+  const offset = parsePositiveInt(req.query.offset, 0, 100000);
+
+  const rows = db
+    .prepare(
+      `
+      SELECT id, source, post_id, text, url, author, media_json, is_real, created_at, captured_at, status
+      FROM posts
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?
+    `,
+    )
+    .all(limit, offset);
+
+  const total = db.prepare("SELECT COUNT(*) AS count FROM posts").get().count;
+
+  return res.json({
+    items: rows.map((row) => ({
+      ...serializePost(row),
+      source: row.source,
+      post_id: row.post_id,
+      is_real: Boolean(row.is_real),
+      status: row.status,
+      captured_at: normalizeTimestamp(row.captured_at),
+    })),
+    pagination: {
+      total,
+      limit,
+      offset,
+      has_more: offset + rows.length < total,
+    },
+  });
+});
+
+app.post("/api/admin/fakes", assertAdminAuth, (req, res) => {
+  const {
+    text,
+    author = "realDonaldTrump",
+    created_at = new Date().toISOString(),
+    status = "approved",
+  } = req.body || {};
+
+  const normalizedText = typeof text === "string" ? text.trim() : "";
+  const normalizedAuthor = normalizeAuthor(author);
+  const normalizedCreatedAt = normalizeTimestamp(created_at);
+  const normalizedStatus = normalizeStatus(status);
+
+  if (!normalizedText) {
+    return res.status(400).json({ error: "text is required" });
+  }
+
+  if (normalizedText.length > 5000) {
+    return res.status(400).json({ error: "text is too long" });
+  }
+
+  if (!normalizedAuthor) {
+    return res.status(400).json({ error: "author must be a valid handle" });
+  }
+
+  if (!normalizedCreatedAt) {
+    return res.status(400).json({ error: "created_at must be a valid timestamp" });
+  }
+
+  if (!normalizedStatus) {
+    return res.status(400).json({ error: "Unsupported status" });
+  }
+
+  const capturedAt = new Date().toISOString();
+  const info = db
+    .prepare(
+      `
+      INSERT INTO posts (source, post_id, text, url, author, media_json, is_real, created_at, captured_at, status)
+      VALUES (@source, NULL, @text, NULL, @author, NULL, 0, @created_at, @captured_at, @status)
+    `,
+    )
+    .run({
+      source: "x",
+      text: normalizedText,
+      author: normalizedAuthor,
+      created_at: normalizedCreatedAt,
+      captured_at: capturedAt,
+      status: normalizedStatus,
+    });
+
+  const inserted = db
+    .prepare(
+      `
+      SELECT id, source, post_id, text, url, author, media_json, is_real, created_at, captured_at, status
+      FROM posts
+      WHERE id = ?
+    `,
+    )
+    .get(info.lastInsertRowid);
+
+  return res.status(201).json({
+    ok: true,
+    post: {
+      ...serializePost(inserted),
+      source: inserted.source,
+      post_id: inserted.post_id,
+      is_real: Boolean(inserted.is_real),
+      status: inserted.status,
+      captured_at: normalizeTimestamp(inserted.captured_at),
     },
   });
 });

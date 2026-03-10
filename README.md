@@ -100,6 +100,8 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 - `GET /beta`
 - `GET /api/beta/next` (requires header `x-beta-key`)
 - `GET /api/admin/review` (requires header `x-admin-key`)
+- `GET /api/admin/posts` (requires header `x-admin-key`)
+- `POST /api/admin/fakes` (requires header `x-admin-key`)
 
 ## Configuration
 

@@ -42,79 +42,160 @@
           <p id="dateLabel" class="date-label">Archive review</p>
           <div class="admin-toolbar-actions">
             <button id="changeAdminKeyBtn" class="btn admin-ghost-btn" type="button">Change Key</button>
+          </div>
+        </div>
+
+        <div class="admin-tabs" role="tablist" aria-label="Admin tools">
+          <button id="reviewTabBtn" class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="reviewTabPanel">Review</button>
+          <button id="postsTabBtn" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="postsTabPanel">Posts</button>
+          <button id="generatorTabBtn" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="generatorTabPanel">Fake Generator</button>
+        </div>
+
+        <section id="reviewTabPanel" class="admin-panel" role="tabpanel" aria-labelledby="reviewTabBtn">
+          <article id="postCard" class="x-post" aria-label="X post preview">
+            <img class="x-avatar" src="./trump.jpg" alt="Donald Trump profile picture" />
+            <div class="x-main">
+              <header class="x-meta">
+                <span id="xDisplayName" class="x-display">Donald J. Trump</span>
+                <span id="xVerified" class="x-verified" aria-label="Verified account" title="Verified">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M22.25 12c0-1.43-1.15-2.47-1.6-3.72-.47-1.3-.37-2.84-1.24-3.71-.88-.88-2.42-.78-3.72-1.25C14.47 2.9 13.43 1.75 12 1.75S9.53 2.9 8.28 3.35c-1.3.47-2.84.37-3.71 1.24-.88.88-.78 2.42-1.25 3.72C2.9 9.53 1.75 10.57 1.75 12s1.15 2.47 1.6 3.72c.47 1.3.37 2.84 1.24 3.71.88.88 2.42.78 3.72 1.25 1.22.42 2.26 1.57 3.69 1.57s2.47-1.15 3.72-1.6c1.3-.47 2.84-.37 3.71-1.24.88-.88.78-2.42 1.25-3.72.42-1.22 1.57-2.26 1.57-3.69Z"
+                    />
+                    <path
+                      class="check"
+                      d="m10.5 15.7-2.9-2.9 1.4-1.4 1.5 1.5 4.5-4.5 1.4 1.4-5.9 5.9Z"
+                    />
+                  </svg>
+                </span>
+                <span id="xHandle" class="x-handle">@realDonaldTrump</span>
+                <span class="x-dot">·</span>
+                <time id="xTime" class="x-time">now</time>
+              </header>
+
+              <p id="postText" class="x-text">Enter the admin key, then load a post.</p>
+              <div id="postMedia" class="x-media hidden"></div>
+              <div id="embedContainer" class="tweet-embed hidden"></div>
+
+              <footer class="x-actions" aria-hidden="true">
+                <span class="x-action-item">
+                  <span class="x-action-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M1.75 12c0-5.66 4.59-10.25 10.25-10.25S22.25 6.34 22.25 12 17.66 22.25 12 22.25c-1.8 0-3.5-.46-4.98-1.27l-4.27 1.08 1.15-4.11A10.2 10.2 0 0 1 1.75 12Zm10.25-8.25A8.25 8.25 0 0 0 5.67 17.2l.33.49-.58 2.06 2.13-.54.46.25A8.25 8.25 0 1 0 12 3.75Z" />
+                    </svg>
+                  </span>
+                  <span id="xCountReply" class="x-action-count">0</span>
+                </span>
+                <span class="x-action-item">
+                  <span class="x-action-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4.25 3.75h9v2h-5.6l8.6 8.6v-5.6h2v9h-9v-2h5.59l-8.59-8.6v5.6h-2v-9Z" />
+                    </svg>
+                  </span>
+                  <span id="xCountRepost" class="x-action-count">0</span>
+                </span>
+                <span class="x-action-item">
+                  <span class="x-action-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 16.5 3C19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z" />
+                    </svg>
+                  </span>
+                  <span id="xCountLike" class="x-action-count">0</span>
+                </span>
+                <span class="x-action-item">
+                  <span class="x-action-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12.9 3.44a1 1 0 0 1 1.18.15l6 5.25a1 1 0 1 1-1.32 1.5L14 6.17V15a1 1 0 1 1-2 0V6.17l-4.76 4.17a1 1 0 0 1-1.32-1.5l6-5.25a1 1 0 0 1 .98-.15ZM5 14a1 1 0 0 1 1 1v3h12v-3a1 1 0 1 1 2 0v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1Z" />
+                    </svg>
+                  </span>
+                  <span id="xCountView" class="x-action-count">0</span>
+                </span>
+              </footer>
+            </div>
+          </article>
+
+          <div class="actions">
+            <button id="realBtn" class="btn btn-real" type="button">Real</button>
+            <button id="fakeBtn" class="btn btn-fake" type="button">Fake</button>
             <button id="nextBtn" class="btn admin-next-btn" type="button">Next Post</button>
           </div>
-        </div>
 
-        <article id="postCard" class="x-post" aria-label="X post preview">
-          <img class="x-avatar" src="./trump.jpg" alt="Donald Trump profile picture" />
-          <div class="x-main">
-            <header class="x-meta">
-              <span id="xDisplayName" class="x-display">Donald J. Trump</span>
-              <span id="xVerified" class="x-verified" aria-label="Verified account" title="Verified">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M22.25 12c0-1.43-1.15-2.47-1.6-3.72-.47-1.3-.37-2.84-1.24-3.71-.88-.88-2.42-.78-3.72-1.25C14.47 2.9 13.43 1.75 12 1.75S9.53 2.9 8.28 3.35c-1.3.47-2.84.37-3.71 1.24-.88.88-.78 2.42-1.25 3.72C2.9 9.53 1.75 10.57 1.75 12s1.15 2.47 1.6 3.72c.47 1.3.37 2.84 1.24 3.71.88.88 2.42.78 3.72 1.25 1.22.42 2.26 1.57 3.69 1.57s2.47-1.15 3.72-1.6c1.3-.47 2.84-.37 3.71-1.24.88-.88.78-2.42 1.25-3.72.42-1.22 1.57-2.26 1.57-3.69Z"
-                  />
-                  <path
-                    class="check"
-                    d="m10.5 15.7-2.9-2.9 1.4-1.4 1.5 1.5 4.5-4.5 1.4 1.4-5.9 5.9Z"
-                  />
-                </svg>
-              </span>
-              <span id="xHandle" class="x-handle">@realDonaldTrump</span>
-              <span class="x-dot">·</span>
-              <time id="xTime" class="x-time">now</time>
-            </header>
+          <p id="result" class="result"></p>
+          <p id="details" class="details"></p>
+        </section>
 
-            <p id="postText" class="x-text">Enter the admin key, then load a post.</p>
-            <div id="postMedia" class="x-media hidden"></div>
-            <div id="embedContainer" class="tweet-embed hidden"></div>
-
-            <footer class="x-actions" aria-hidden="true">
-              <span class="x-action-item">
-                <span class="x-action-icon">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M1.75 12c0-5.66 4.59-10.25 10.25-10.25S22.25 6.34 22.25 12 17.66 22.25 12 22.25c-1.8 0-3.5-.46-4.98-1.27l-4.27 1.08 1.15-4.11A10.2 10.2 0 0 1 1.75 12Zm10.25-8.25A8.25 8.25 0 0 0 5.67 17.2l.33.49-.58 2.06 2.13-.54.46.25A8.25 8.25 0 1 0 12 3.75Z" />
-                  </svg>
-                </span>
-                <span id="xCountReply" class="x-action-count">0</span>
-              </span>
-              <span class="x-action-item">
-                <span class="x-action-icon">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M4.25 3.75h9v2h-5.6l8.6 8.6v-5.6h2v9h-9v-2h5.59l-8.59-8.6v5.6h-2v-9Z" />
-                  </svg>
-                </span>
-                <span id="xCountRepost" class="x-action-count">0</span>
-              </span>
-              <span class="x-action-item">
-                <span class="x-action-icon">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 16.5 3C19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.5L12 21.35Z" />
-                  </svg>
-                </span>
-                <span id="xCountLike" class="x-action-count">0</span>
-              </span>
-              <span class="x-action-item">
-                <span class="x-action-icon">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12.9 3.44a1 1 0 0 1 1.18.15l6 5.25a1 1 0 1 1-1.32 1.5L14 6.17V15a1 1 0 1 1-2 0V6.17l-4.76 4.17a1 1 0 0 1-1.32-1.5l6-5.25a1 1 0 0 1 .98-.15ZM5 14a1 1 0 0 1 1 1v3h12v-3a1 1 0 1 1 2 0v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1Z" />
-                  </svg>
-                </span>
-                <span id="xCountView" class="x-action-count">0</span>
-              </span>
-            </footer>
+        <section id="postsTabPanel" class="admin-panel hidden" role="tabpanel" aria-labelledby="postsTabBtn">
+          <div class="admin-list-toolbar">
+            <p id="postsSummary" class="admin-panel-copy">Enter the admin key to load posts.</p>
+            <button id="refreshPostsBtn" class="btn admin-ghost-btn admin-inline-btn" type="button">Refresh</button>
           </div>
-        </article>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Text</th>
+                </tr>
+              </thead>
+              <tbody id="postsTableBody">
+                <tr>
+                  <td colspan="5" class="admin-table-empty">No posts loaded.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="admin-list-pagination">
+            <button id="prevPostsBtn" class="btn admin-ghost-btn admin-inline-btn" type="button">Previous</button>
+            <button id="nextPostsBtn" class="btn admin-ghost-btn admin-inline-btn" type="button">Next</button>
+          </div>
+        </section>
 
-        <div class="actions">
-          <button id="realBtn" class="btn btn-real" type="button">Real</button>
-          <button id="fakeBtn" class="btn btn-fake" type="button">Fake</button>
-        </div>
+        <section id="generatorTabPanel" class="admin-panel hidden" role="tabpanel" aria-labelledby="generatorTabBtn">
+          <div class="admin-generator">
+            <div class="admin-generator-controls">
+              <label class="admin-label" for="fakeTopicInput">Topic</label>
+              <input id="fakeTopicInput" class="admin-input admin-block-input" type="text" placeholder="border, markets, polls..." />
+              <label class="admin-label" for="fakeToneSelect">Tone</label>
+              <select id="fakeToneSelect" class="admin-input admin-block-input">
+                <option value="boast">Boast</option>
+                <option value="attack">Attack</option>
+                <option value="victory">Victory lap</option>
+              </select>
+              <div class="admin-generator-actions">
+                <button id="generateFakeBtn" class="btn btn-fake" type="button">Generate Fake</button>
+                <button id="saveFakeBtn" class="btn btn-real" type="button">Save Fake</button>
+              </div>
+              <p id="generatorStatus" class="admin-status"></p>
+            </div>
 
-        <p id="result" class="result"></p>
-        <p id="details" class="details"></p>
+            <article id="generatorPreview" class="x-post" aria-label="Generated fake post preview">
+              <img class="x-avatar" src="./trump.jpg" alt="Donald Trump profile picture" />
+              <div class="x-main">
+                <header class="x-meta">
+                  <span class="x-display">Donald J. Trump</span>
+                  <span class="x-verified" aria-label="Verified account" title="Verified">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M22.25 12c0-1.43-1.15-2.47-1.6-3.72-.47-1.3-.37-2.84-1.24-3.71-.88-.88-2.42-.78-3.72-1.25C14.47 2.9 13.43 1.75 12 1.75S9.53 2.9 8.28 3.35c-1.3.47-2.84.37-3.71 1.24-.88.88-.78 2.42-1.25 3.72C2.9 9.53 1.75 10.57 1.75 12s1.15 2.47 1.6 3.72c.47 1.3.37 2.84 1.24 3.71.88.88 2.42.78 3.72 1.25 1.22.42 2.26 1.57 3.69 1.57s2.47-1.15 3.72-1.6c1.3-.47 2.84-.37 3.71-1.24.88-.88.78-2.42 1.25-3.72.42-1.22 1.57-2.26 1.57-3.69Z"
+                      />
+                      <path
+                        class="check"
+                        d="m10.5 15.7-2.9-2.9 1.4-1.4 1.5 1.5 4.5-4.5 1.4 1.4-5.9 5.9Z"
+                      />
+                    </svg>
+                  </span>
+                  <span class="x-handle">@realDonaldTrump</span>
+                  <span class="x-dot">·</span>
+                  <time id="generatorTime" class="x-time">now</time>
+                </header>
+                <p id="generatorText" class="x-text">Generate a fake post draft here.</p>
+              </div>
+            </article>
+          </div>
+        </section>
       </section>
     </main>
 
