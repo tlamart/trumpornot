@@ -5,10 +5,13 @@ const {
   dedupeBy,
   extractMedia,
   extractPost,
+  getSiteKind,
   getFetchErrorMessage,
   getApiOriginPermissionPattern,
+  parseTruthSocialPostUrl,
   isSupportedApiUrl,
   normalizeApiBase,
+  normalizeTruthSocialMedia,
   normalizeVideoUrl,
 } = require("./shared.js");
 
@@ -117,11 +120,11 @@ test("extractMedia keeps unique images and normalized video data", () => {
   });
 });
 
-test("extractPost returns normalized post payload", () => {
-  const post = extractPost(createMockArticle({
+test("extractPost returns normalized x post payload", async () => {
+  const post = await extractPost(createMockArticle({
     text: "HELLO",
     imageUrls: ["https://pbs.twimg.com/media/a.jpg"],
-  }));
+  }), { siteKind: "x" });
 
   assert.deepEqual(post, {
     id: "123",
@@ -134,6 +137,103 @@ test("extractPost returns normalized post payload", () => {
     },
     createdAt: "2026-03-09T12:00:00.000Z",
   });
+});
+
+test("getSiteKind detects supported hosts", () => {
+  assert.equal(getSiteKind("x.com"), "x");
+  assert.equal(getSiteKind("truthsocial.com"), "truthsocial");
+  assert.equal(getSiteKind("example.com"), null);
+});
+
+test("parseTruthSocialPostUrl parses truthsocial permalinks", () => {
+  assert.deepEqual(
+    parseTruthSocialPostUrl("https://truthsocial.com/@realDonaldTrump/posts/1234567890"),
+    {
+      author: "realDonaldTrump",
+      id: "1234567890",
+      url: "https://truthsocial.com/@realDonaldTrump/posts/1234567890",
+      apiUrl: "https://truthsocial.com/api/v1/statuses/1234567890",
+    },
+  );
+  assert.equal(parseTruthSocialPostUrl("https://truthsocial.com/explore"), null);
+});
+
+test("normalizeTruthSocialMedia keeps image and video attachments", () => {
+  assert.deepEqual(
+    normalizeTruthSocialMedia([
+      { type: "image", url: "https://files.truthsocial.com/a.jpg" },
+      { type: "video", url: "https://files.truthsocial.com/b.mp4", preview_url: "https://files.truthsocial.com/b.jpg" },
+    ]),
+    {
+      images: [{ url: "https://files.truthsocial.com/a.jpg" }],
+      video: {
+        url: "https://files.truthsocial.com/b.mp4",
+        posterUrl: "https://files.truthsocial.com/b.jpg",
+      },
+    },
+  );
+});
+
+test("extractPost fetches truth social post details from the status api", async () => {
+  const fetchCalls = [];
+  const post = await extractPost(null, {
+    siteKind: "truthsocial",
+    locationObj: { href: "https://truthsocial.com/@realDonaldTrump/posts/555", hostname: "truthsocial.com" },
+    fetchImpl: async (url) => {
+      fetchCalls.push(url);
+      return {
+        ok: true,
+        async json() {
+          return {
+            content: "<p>Hello <strong>world</strong></p>",
+            created_at: "2026-03-09T12:00:00.000Z",
+            account: { acct: "realDonaldTrump" },
+            media_attachments: [
+              { type: "image", url: "https://files.truthsocial.com/a.jpg" },
+            ],
+          };
+        },
+      };
+    },
+  });
+
+  assert.deepEqual(fetchCalls, ["https://truthsocial.com/api/v1/statuses/555"]);
+  assert.deepEqual(post, {
+    id: "555",
+    author: "realDonaldTrump",
+    text: "Hello world",
+    url: "https://truthsocial.com/@realDonaldTrump/posts/555",
+    media: {
+      images: [{ url: "https://files.truthsocial.com/a.jpg" }],
+      video: null,
+    },
+    createdAt: "2026-03-09T12:00:00.000Z",
+  });
+});
+
+test("extractPost accepts a direct truth social post url override", async () => {
+  const fetchCalls = [];
+  const post = await extractPost({ postUrl: "https://truthsocial.com/@realDonaldTrump/posts/777" }, {
+    siteKind: "truthsocial",
+    locationObj: { href: "https://truthsocial.com/@realDonaldTrump", hostname: "truthsocial.com" },
+    fetchImpl: async (url) => {
+      fetchCalls.push(url);
+      return {
+        ok: true,
+        async json() {
+          return {
+            content: "<p>Direct url</p>",
+            created_at: "2026-03-09T12:00:00.000Z",
+            account: { acct: "realDonaldTrump" },
+            media_attachments: [],
+          };
+        },
+      };
+    },
+  });
+
+  assert.deepEqual(fetchCalls, ["https://truthsocial.com/api/v1/statuses/777"]);
+  assert.equal(post.url, "https://truthsocial.com/@realDonaldTrump/posts/777");
 });
 
 test("getFetchErrorMessage explains invalid and failed requests", () => {

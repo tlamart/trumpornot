@@ -6,7 +6,7 @@ export function getUtcDayKey(date = new Date()) {
 }
 
 const HTTPS_PROTOCOLS = new Set(["https:"]);
-const SUPPORTED_POST_SOURCES = new Set(["x"]);
+const SUPPORTED_POST_SOURCES = new Set(["x", "truthsocial"]);
 const SUPPORTED_POST_STATUSES = new Set(["approved", "pending", "rejected"]);
 const SUPPORTED_POST_HOSTS = new Set([
   "x.com",
@@ -14,6 +14,8 @@ const SUPPORTED_POST_HOSTS = new Set([
   "twitter.com",
   "www.twitter.com",
   "mobile.twitter.com",
+  "truthsocial.com",
+  "www.truthsocial.com",
 ]);
 const MAX_MEDIA_ITEMS = 8;
 
@@ -110,7 +112,11 @@ export function normalizePostUrl(value) {
     return null;
   }
 
-  return /^\/[^/]+\/status\/\d+(?:\/)?$/i.test(url.pathname) ? normalized : null;
+  if (/^\/[^/]+\/status\/\d+(?:\/)?$/i.test(url.pathname)) {
+    return normalized;
+  }
+
+  return /^\/@[A-Za-z0-9_]{1,30}\/posts\/\d+(?:\/)?$/i.test(url.pathname) ? normalized : null;
 }
 
 export function normalizeMedia(media) {

@@ -2,11 +2,15 @@
   "manifest_version": 2,
   "name": "TrumpOrNot Curator",
   "version": "0.1.0",
-  "description": "Capture X posts and save them to your TrumpOrNot database.",
+  "description": "Capture X and Truth Social posts and save them to your TrumpOrNot database.",
   "permissions": [
     "activeTab",
+    "permissions",
     "storage",
-    "https://x.com/*"
+    "https://trumpornot.tlam.art/*",
+    "https://x.com/*",
+    "https://truthsocial.com/*",
+    "https://www.truthsocial.com/*"
   ],
   "optional_permissions": [
     "http://localhost/*",
@@ -19,7 +23,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://x.com/*"],
+      "matches": ["https://x.com/*", "https://truthsocial.com/*", "https://www.truthsocial.com/*"],
       "js": ["shared.js", "content.js"],
       "run_at": "document_idle"
     }

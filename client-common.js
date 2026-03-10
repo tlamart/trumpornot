@@ -11,6 +11,8 @@
     "twitter.com",
     "www.twitter.com",
     "mobile.twitter.com",
+    "truthsocial.com",
+    "www.truthsocial.com",
   ]);
 
   function getApiBase() {
@@ -125,7 +127,22 @@
       return null;
     }
 
-    return /^\/[^/]+\/status\/\d+(?:\/)?$/i.test(url.pathname) ? normalized : null;
+    if (/^\/[^/]+\/status\/\d+(?:\/)?$/i.test(url.pathname)) {
+      return normalized;
+    }
+
+    return /^\/@[A-Za-z0-9_]{1,30}\/posts\/\d+(?:\/)?$/i.test(url.pathname) ? normalized : null;
+  }
+
+  function isXPostSourceUrl(value) {
+    const normalized = normalizePostSourceUrl(value);
+    if (!normalized) {
+      return false;
+    }
+
+    const url = new URL(normalized);
+    return ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"]
+      .includes(url.hostname.toLowerCase());
   }
 
   function normalizeRenderableMedia(media) {
@@ -218,7 +235,7 @@
   }
 
   function shouldUseEmbeddedTweet(post) {
-    return Boolean(post && normalizePostSourceUrl(post.source) && post.media && post.media.video);
+    return Boolean(post && isXPostSourceUrl(post.source) && post.media && post.media.video);
   }
 
   async function renderEmbeddedTweet(embedContainer, sourceUrl) {
@@ -246,7 +263,7 @@
   }
 
   function toTwitterStatusUrl(url) {
-    const normalized = normalizePostSourceUrl(url);
+    const normalized = isXPostSourceUrl(url) ? normalizePostSourceUrl(url) : null;
     if (!normalized) {
       return null;
     }

@@ -466,6 +466,17 @@ h1 {
   white-space: normal;
 }
 
+.admin-row-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.admin-row-actions .admin-inline-btn {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.85rem;
+}
+
 .admin-generator {
   display: grid;
   gap: 1rem;
@@ -496,5 +507,9 @@ h1 {
   .admin-inline-btn,
   .admin-tab {
     width: 100%;
+  }
+
+  .admin-row-actions {
+    flex-direction: column;
   }
 }

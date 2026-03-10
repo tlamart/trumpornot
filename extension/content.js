@@ -7,32 +7,75 @@ const {
   extractPost,
   getFetchErrorMessage,
   getSettings,
+  getSiteKind,
   savePost,
 } = globalThis.TrumpOrNotExtension;
 
+const siteKind = getSiteKind(window.location.hostname);
+
 injectStyles();
-scanPosts(document);
 
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    mutation.addedNodes.forEach((node) => {
-      if (!(node instanceof Element)) {
-        return;
-      }
+if (siteKind === "x") {
+  initXPage();
+} else if (siteKind === "truthsocial") {
+  initTruthSocialPage();
+}
 
-      if (node.matches && node.matches(ARTICLE_SELECTOR)) {
-        enhanceArticle(node);
-      }
+function initXPage() {
+  scanPosts(document);
 
-      scanPosts(node);
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (!(node instanceof Element)) {
+          return;
+        }
+
+        if (node.matches && node.matches(ARTICLE_SELECTOR)) {
+          enhanceArticle(node);
+        }
+
+        scanPosts(node);
+      });
     });
   });
-});
 
-observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true,
-});
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+function initTruthSocialPage() {
+  scanTruthSocialPosts(document);
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (!(node instanceof Element)) {
+          return;
+        }
+
+        scanTruthSocialPosts(node);
+      });
+    });
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+
+  let lastHref = window.location.href;
+  window.setInterval(() => {
+    if (window.location.href === lastHref) {
+      return;
+    }
+
+    lastHref = window.location.href;
+    scanTruthSocialPosts(document);
+  }, 500);
+}
 
 function injectStyles() {
   if (document.getElementById(STYLE_ID)) {
@@ -104,13 +147,53 @@ function scanPosts(rootNode) {
 
 async function saveArticle(button, article) {
   showToast("Saving post...");
-  const post = extractPost(article);
+
+  let post;
+  try {
+    post = await extractPost(article);
+  } catch (error) {
+    console.error("[TrumpOrNot] Extraction failed", error);
+    showToast(error && error.message ? error.message : "Unable to read post", true);
+    restoreButton(button, "Save as Real", "Try again", true);
+    return;
+  }
+
   if (!post) {
     flashButton(button, "No text or media", true);
     showToast("No text or media found on this post", true);
     return;
   }
 
+  await saveArticlePayload(button, post);
+}
+
+async function saveTruthSocialPage(button, article) {
+  showToast("Saving post...");
+
+  let post;
+  try {
+    post = await extractPost(article, {
+      fetchImpl: fetch,
+      locationObj: window.location,
+      postUrl: article && article.dataset ? article.dataset.trumpornotPostUrl : null,
+    });
+  } catch (error) {
+    console.error("[TrumpOrNot] Truth Social extraction failed", error);
+    showToast(error && error.message ? error.message : "Unable to load post", true);
+    restoreButton(button, "Save as Real", "Try again", true);
+    return;
+  }
+
+  if (!post) {
+    flashButton(button, "Unsupported post", true);
+    showToast("Unable to locate that Truth Social post", true);
+    return;
+  }
+
+  await saveArticlePayload(button, post);
+}
+
+async function saveArticlePayload(button, post) {
   const { apiBase, apiKey } = await getSettings(browser.storage);
 
   if (!apiBase || !apiKey) {
@@ -119,22 +202,12 @@ async function saveArticle(button, article) {
     return;
   }
 
-  const payload = {
-    source: "x",
-    post_id: post.id,
-    text: post.text,
-    url: post.url,
-    author: post.author,
-    media: post.media,
-    created_at: post.createdAt,
-    is_real: true,
-    status: "approved",
-  };
+  const payload = buildSavePayload(post, siteKind);
 
   const originalText = button.textContent;
   button.disabled = true;
   button.textContent = "Saving...";
-  console.info("[TrumpOrNot] Saving post", { postId: post.id, apiBase });
+  console.info("[TrumpOrNot] Saving post", { source: siteKind, postId: post.id, apiBase });
 
   let result;
   try {
@@ -157,6 +230,20 @@ async function saveArticle(button, article) {
   button.textContent = "Saved";
   button.disabled = true;
   showToast("Post saved");
+}
+
+function buildSavePayload(post, source) {
+  return {
+    source,
+    post_id: post.id,
+    text: post.text,
+    url: post.url,
+    author: post.author,
+    media: post.media,
+    created_at: post.createdAt,
+    is_real: true,
+    status: "approved",
+  };
 }
 
 function restoreButton(button, originalText, nextText, isError) {
@@ -190,19 +277,148 @@ function enhanceArticle(article) {
   button.type = "button";
   button.className = BUTTON_CLASS;
   button.textContent = "Save as Real";
-  button.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    saveArticle(button, article);
-  });
+  bindSaveButton(button, () => saveArticle(button, article));
 
   actionBar.appendChild(button);
   article.dataset[ENHANCED_ATTR] = "true";
 }
 
+function scanTruthSocialPosts(rootNode) {
+  const containers = collectTruthSocialPostContainers(rootNode);
+  containers.forEach((container) => {
+    enhanceTruthSocialPost(container);
+  });
+}
+
+function enhanceTruthSocialPost(container) {
+  if (!container || container.dataset[ENHANCED_ATTR] === "true") {
+    return;
+  }
+
+  const postUrl = getTruthSocialPostUrl(container);
+  if (!postUrl) {
+    return;
+  }
+
+  const mount = findTruthSocialActionBar(container);
+  if (!mount) {
+    return;
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = BUTTON_CLASS;
+  button.textContent = "Save as Real";
+  bindSaveButton(button, () => saveTruthSocialPage(button, container));
+
+  container.dataset.trumpornotPostUrl = postUrl;
+  mount.appendChild(button);
+  container.dataset[ENHANCED_ATTR] = "true";
+}
+
+function bindSaveButton(button, onSave) {
+  const stopEvent = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+  };
+
+  ["pointerdown", "mousedown"].forEach((eventName) => {
+    button.addEventListener(eventName, stopEvent, true);
+  });
+
+  button.addEventListener("click", (event) => {
+    stopEvent(event);
+    onSave();
+  }, true);
+}
+
 function findActionBar(article) {
   const candidates = article.querySelectorAll('div[role="group"]');
   return candidates[candidates.length - 1] || null;
+}
+
+function collectTruthSocialPostContainers(rootNode) {
+  const scope = rootNode && rootNode.querySelectorAll ? rootNode : document;
+  const anchors = [];
+  if (scope instanceof Element && scope.matches('a[href*="/posts/"]')) {
+    anchors.push(scope);
+  }
+  anchors.push(...scope.querySelectorAll('a[href*="/posts/"]'));
+  const containers = [];
+  const seen = new Set();
+
+  anchors.forEach((anchor) => {
+    const href = anchor.getAttribute("href");
+    if (!href || !isTruthSocialPostHref(href)) {
+      return;
+    }
+
+    const container = (
+      anchor.closest("article")
+      || anchor.closest('[data-id]')
+      || anchor.closest('[data-testid="status"]')
+      || anchor.closest('[class*="status"]')
+      || anchor.closest("div")
+    );
+
+    if (!container || seen.has(container)) {
+      return;
+    }
+
+    seen.add(container);
+    containers.push(container);
+  });
+
+  return containers;
+}
+
+function isTruthSocialPostHref(href) {
+  try {
+    const url = new URL(href, window.location.href);
+    return /^\/@[A-Za-z0-9_]{1,30}\/posts\/\d+(?:\/)?$/.test(url.pathname);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function getTruthSocialPostUrl(container) {
+  if (!container || !container.querySelectorAll) {
+    return null;
+  }
+
+  const anchors = Array.from(container.querySelectorAll('a[href*="/posts/"]'));
+  const match = anchors.find((anchor) => {
+    const href = anchor.getAttribute("href");
+    return href && isTruthSocialPostHref(href);
+  });
+
+  if (!match) {
+    return null;
+  }
+
+  return new URL(match.getAttribute("href"), window.location.href).toString();
+}
+
+function findTruthSocialActionBar(container) {
+  const candidates = [
+    '[role="group"]',
+    '[data-testid*="action"]',
+    '[class*="status__action"]',
+    '[class*="actions"]',
+    'footer',
+  ];
+
+  for (const selector of candidates) {
+    const match = container.querySelector(selector);
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
 }
 
 let toastTimeoutId = null;

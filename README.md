@@ -6,7 +6,7 @@ Daily game: user sees one post and guesses if it is real or fake.
 
 - `index.html`, `styles.css`, `app.js`: website
 - `backend/`: Express + SQLite API
-- `extension/`: Firefox extension to curate posts from x.com
+- `extension/`: Firefox extension to curate posts from x.com and truthsocial.com
 
 ## Local Development
 
@@ -81,13 +81,13 @@ App runs on port 8080 (configurable in `docker-compose.yml`).
 
 1. Click extension icon.
 2. On first use, set:
-   - API Base URL: `http://localhost:3000` for local development, or an `https://` URL in production
+   - API Base URL: `https://trumpornot.tlam.art` by default, or `http://localhost:3000` for local development
    - Extension API Key: same as `EXTENSION_API_KEY`
 3. Click `Save Settings` and approve access to that backend origin when Firefox asks.
-4. Open X and wait for posts to render.
+4. Open X or Truth Social.
 5. Click `Save as Real` on any post you want to store.
 
-After that, each X post gets an inline `Save as Real` button. The page buttons reuse the saved API base URL and API key.
+After that, each X post gets an inline `Save as Real` button. On Truth Social post pages (`/@handle/posts/<id>`), the extension adds a floating `Save as Real` button and fetches the post payload from Truth Social's status API before saving it. The page buttons reuse the saved API base URL and API key.
 
 Saved post is inserted/upserted into SQLite (`backend/data.db`).
 Posts can now include text-only, image, or video content. Media-only posts are accepted too.

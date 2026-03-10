@@ -70,7 +70,7 @@ app.use((req, res, next) => {
 
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Origin", origin);
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
     "Content-Type, x-extension-key, x-admin-key, x-beta-key",
@@ -140,6 +140,8 @@ function getAllowedOrigins(value) {
     "http://127.0.0.1:4173",
     "https://x.com",
     "https://www.x.com",
+    "https://truthsocial.com",
+    "https://www.truthsocial.com",
   ];
   const configured = typeof value === "string"
     ? value.split(",").map((item) => item.trim()).filter(Boolean)
@@ -263,7 +265,7 @@ app.post("/api/posts", assertExtensionAuth, (req, res) => {
   }
 
   if (url != null && !normalizedUrl) {
-    return res.status(400).json({ error: "url must be a valid https x.com status URL" });
+    return res.status(400).json({ error: "url must be a valid supported https post URL" });
   }
 
   if (created_at != null && !normalizedCreatedAt) {
@@ -499,6 +501,49 @@ app.get("/api/admin/posts", assertAdminAuth, (req, res) => {
       limit,
       offset,
       has_more: offset + rows.length < total,
+    },
+  });
+});
+
+app.patch("/api/admin/posts/:id", assertAdminAuth, (req, res) => {
+  const postId = Number.parseInt(req.params.id, 10);
+  const normalizedStatus = normalizeStatus(req.body && req.body.status);
+
+  if (!Number.isInteger(postId) || postId <= 0) {
+    return res.status(400).json({ error: "Invalid post id" });
+  }
+
+  if (!normalizedStatus) {
+    return res.status(400).json({ error: "Unsupported status" });
+  }
+
+  const info = db
+    .prepare("UPDATE posts SET status = ? WHERE id = ?")
+    .run(normalizedStatus, postId);
+
+  if (!info.changes) {
+    return res.status(404).json({ error: "Post not found" });
+  }
+
+  const row = db
+    .prepare(
+      `
+      SELECT id, source, post_id, text, url, author, media_json, is_real, created_at, captured_at, status
+      FROM posts
+      WHERE id = ?
+    `,
+    )
+    .get(postId);
+
+  return res.json({
+    ok: true,
+    post: {
+      ...serializePost(row),
+      source: row.source,
+      post_id: row.post_id,
+      is_real: Boolean(row.is_real),
+      status: row.status,
+      captured_at: normalizeTimestamp(row.captured_at),
     },
   });
 });

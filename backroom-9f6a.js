@@ -100,6 +100,7 @@ let currentPost = null;
 let activeTab = "review";
 let postsOffset = 0;
 let generatedFake = null;
+let currentListItems = [];
 
 adminOverlayForm.addEventListener("submit", saveAdminKey);
 changeAdminKeyBtn.addEventListener("click", () => {
@@ -111,6 +112,7 @@ fakeBtn.addEventListener("click", () => submitGuess(false));
 refreshPostsBtn.addEventListener("click", () => loadPostsList(postsOffset));
 prevPostsBtn.addEventListener("click", () => loadPostsList(Math.max(0, postsOffset - POSTS_PAGE_SIZE)));
 nextPostsBtn.addEventListener("click", () => loadPostsList(postsOffset + POSTS_PAGE_SIZE));
+postsTableBody.addEventListener("click", handlePostsTableAction);
 generateFakeBtn.addEventListener("click", generateFakeDraft);
 saveFakeBtn.addEventListener("click", saveGeneratedFake);
 
@@ -325,9 +327,10 @@ async function loadPostsList(offset, overrideKey = null) {
     postsSummary.textContent = "Posts unavailable";
     prevPostsBtn.disabled = true;
     nextPostsBtn.disabled = true;
+    currentListItems = [];
     postsTableBody.innerHTML = `
       <tr>
-        <td colspan="5" class="admin-table-empty">Backend request failed.</td>
+        <td colspan="6" class="admin-table-empty">Backend request failed.</td>
       </tr>
     `;
     return false;
@@ -339,15 +342,17 @@ async function loadPostsList(offset, overrideKey = null) {
     postsSummary.textContent = "Posts unavailable";
     prevPostsBtn.disabled = true;
     nextPostsBtn.disabled = true;
+    currentListItems = [];
     postsTableBody.innerHTML = `
       <tr>
-        <td colspan="5" class="admin-table-empty">Unable to load posts.</td>
+        <td colspan="6" class="admin-table-empty">Unable to load posts.</td>
       </tr>
     `;
     return false;
   }
 
   const data = await response.json();
+  currentListItems = data.items;
   postsOffset = data.pagination.offset;
   postsSummary.textContent = `Showing ${postsOffset + 1}-${postsOffset + data.items.length} of ${data.pagination.total} posts`;
   prevPostsBtn.disabled = postsOffset === 0;
@@ -357,7 +362,7 @@ async function loadPostsList(offset, overrideKey = null) {
     postsSummary.textContent = "No posts in archive yet.";
     postsTableBody.innerHTML = `
       <tr>
-        <td colspan="5" class="admin-table-empty">No posts in archive yet.</td>
+        <td colspan="6" class="admin-table-empty">No posts in archive yet.</td>
       </tr>
     `;
     return true;
@@ -370,10 +375,98 @@ async function loadPostsList(offset, overrideKey = null) {
       <td>${escapeHtml(item.status)}</td>
       <td>${escapeHtml(formatListDate(item.created_at || item.captured_at))}</td>
       <td class="admin-table-text">${escapeHtml(truncate(item.text || "[media-only]", 140))}</td>
+      <td>
+        <div class="admin-row-actions">
+          <button class="btn admin-ghost-btn admin-inline-btn" type="button" data-action="review-post" data-post-id="${item.id}">Review</button>
+          <button class="btn admin-ghost-btn admin-inline-btn" type="button" data-action="set-status" data-status="approved" data-post-id="${item.id}" ${item.status === "approved" ? "disabled" : ""}>Approve</button>
+          <button class="btn admin-ghost-btn admin-inline-btn" type="button" data-action="set-status" data-status="rejected" data-post-id="${item.id}" ${item.status === "rejected" ? "disabled" : ""}>Reject</button>
+        </div>
+      </td>
     </tr>
   `).join("");
 
   return true;
+}
+
+async function handlePostsTableAction(event) {
+  const button = event.target.closest("button[data-action]");
+  if (!button) {
+    return;
+  }
+
+  const postId = Number.parseInt(button.dataset.postId, 10);
+  if (!Number.isInteger(postId)) {
+    return;
+  }
+
+  if (button.dataset.action === "review-post") {
+    reviewPostFromList(postId);
+    return;
+  }
+
+  if (button.dataset.action === "set-status") {
+    await updatePostStatus(postId, button.dataset.status, button);
+  }
+}
+
+function reviewPostFromList(postId) {
+  const item = currentListItems.find((entry) => entry.id === postId);
+  if (!item) {
+    setAdminStatus("Post not found in current list.", true);
+    return;
+  }
+
+  currentPost = {
+    id: item.id,
+    text: item.text || "",
+    isReal: Boolean(item.is_real),
+    source: item.url || null,
+    media: item.media || null,
+    handle: item.author ? `@${item.author}` : "@realDonaldTrump",
+    createdAt: item.created_at || item.captured_at || null,
+    detail: `List review. Status: ${item.status}. Source: ${item.source}.`,
+    displayName: "Donald J. Trump",
+  };
+
+  result.textContent = "";
+  details.textContent = "";
+  renderCurrentPost();
+  activateTab("review");
+}
+
+async function updatePostStatus(postId, status, button) {
+  if (!status) {
+    return;
+  }
+
+  button.disabled = true;
+  setAdminStatus(`Updating post #${postId}...`, false);
+
+  const response = await adminFetch(`/api/admin/posts/${postId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response) {
+    setAdminStatus("Backend request failed", true);
+    button.disabled = false;
+    return;
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    setAdminStatus(body.error || `Request failed (${response.status})`, true);
+    button.disabled = false;
+    return;
+  }
+
+  const data = await response.json();
+  currentListItems = currentListItems.map((item) => item.id === postId ? { ...item, status: data.post.status } : item);
+  if (currentPost && currentPost.id === postId) {
+    currentPost.detail = `List review. Status: ${data.post.status}. Source: ${data.post.source}.`;
+  }
+  setAdminStatus(`Post #${postId} marked ${data.post.status}.`, false);
+  await loadPostsList(postsOffset);
 }
 
 function generateFakeDraft() {

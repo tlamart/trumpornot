@@ -59,6 +59,7 @@ test("normalizeMedia returns null when nothing usable is present", () => {
 
 test("normalizers reject unsupported sources and unsafe urls", () => {
   assert.equal(normalizeSource("x"), "x");
+  assert.equal(normalizeSource("truthsocial"), "truthsocial");
   assert.equal(normalizeSource("rss"), null);
   assert.equal(normalizeStatus("approved"), "approved");
   assert.equal(normalizeStatus("deleted"), null);
@@ -69,6 +70,10 @@ test("normalizers reject unsupported sources and unsafe urls", () => {
   assert.equal(
     normalizePostUrl("https://x.com/realDonaldTrump/status/1234567890"),
     "https://x.com/realDonaldTrump/status/1234567890",
+  );
+  assert.equal(
+    normalizePostUrl("https://truthsocial.com/@realDonaldTrump/posts/1234567890"),
+    "https://truthsocial.com/@realDonaldTrump/posts/1234567890",
   );
   assert.equal(normalizePostUrl("javascript:alert(1)"), null);
   assert.equal(normalizeTimestamp("2026-03-09T12:00:00.000Z"), "2026-03-09T12:00:00.000Z");
@@ -120,6 +125,26 @@ test("serializePost parses media_json into the API shape", () => {
       images: [{ url: "https://example.com/a.jpg" }],
       video: null,
     },
+    created_at: "2026-03-09T12:00:00.000Z",
+  });
+});
+
+test("serializePost preserves supported truth social post urls", () => {
+  const row = {
+    id: 88,
+    text: "hello",
+    url: "https://truthsocial.com/@realDonaldTrump/posts/88",
+    author: "realDonaldTrump",
+    media_json: null,
+    created_at: "2026-03-09T12:00:00.000Z",
+  };
+
+  assert.deepEqual(serializePost(row), {
+    id: 88,
+    text: "hello",
+    url: "https://truthsocial.com/@realDonaldTrump/posts/88",
+    author: "realDonaldTrump",
+    media: null,
     created_at: "2026-03-09T12:00:00.000Z",
   });
 });
