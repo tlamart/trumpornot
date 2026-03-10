@@ -6,6 +6,7 @@ const {
   extractMedia,
   extractPost,
   getFetchErrorMessage,
+  getApiOriginPermissionPattern,
   isSupportedApiUrl,
   normalizeApiBase,
   normalizeVideoUrl,
@@ -60,7 +61,22 @@ test("normalizeApiBase trims whitespace and trailing slashes", () => {
 
 test("isSupportedApiUrl accepts deployed https urls", () => {
   assert.equal(isSupportedApiUrl("https://trumpornot.tlam.art"), true);
+  assert.equal(isSupportedApiUrl("http://localhost:3000"), true);
+  assert.equal(isSupportedApiUrl("http://127.0.0.1:3000"), true);
+  assert.equal(isSupportedApiUrl("http://example.com"), false);
   assert.equal(isSupportedApiUrl("ftp://example.com"), false);
+});
+
+test("getApiOriginPermissionPattern narrows to the configured origin", () => {
+  assert.equal(
+    getApiOriginPermissionPattern("https://trumpornot.tlam.art/api"),
+    "https://trumpornot.tlam.art/*",
+  );
+  assert.equal(
+    getApiOriginPermissionPattern("http://localhost:3000"),
+    "http://localhost/*",
+  );
+  assert.equal(getApiOriginPermissionPattern("http://example.com"), null);
 });
 
 test("normalizeVideoUrl keeps direct media files and rejects blob urls", () => {
@@ -122,6 +138,10 @@ test("extractPost returns normalized post payload", () => {
 
 test("getFetchErrorMessage explains invalid and failed requests", () => {
   assert.equal(getFetchErrorMessage(new Error("Failed to fetch"), "bad-url"), "Bad API URL");
+  assert.equal(
+    getFetchErrorMessage(new Error("Failed to fetch"), "http://example.com"),
+    "Use HTTPS or localhost over HTTP",
+  );
   assert.equal(
     getFetchErrorMessage(new Error("Failed to fetch"), "https://api.example.com"),
     "Request blocked or failed",

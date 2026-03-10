@@ -7,7 +7,7 @@
 
   root.TrumpOrNotExtension = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
-  const SUPPORTED_PROTOCOLS = new Set(["http:", "https:"]);
+  const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
   function normalizeApiBase(value) {
     if (!value || typeof value !== "string") {
@@ -27,7 +27,24 @@
 
   function isSupportedApiUrl(value) {
     const url = value instanceof URL ? value : safeUrl(value);
-    return Boolean(url && SUPPORTED_PROTOCOLS.has(url.protocol));
+    if (!url) {
+      return false;
+    }
+
+    if (url.protocol === "https:") {
+      return true;
+    }
+
+    return url.protocol === "http:" && LOCALHOST_HOSTS.has(url.hostname);
+  }
+
+  function getApiOriginPermissionPattern(value) {
+    const url = value instanceof URL ? value : safeUrl(value);
+    if (!isSupportedApiUrl(url)) {
+      return null;
+    }
+
+    return `${url.protocol}//${url.hostname}/*`;
   }
 
   function getFetchErrorMessage(error, apiBase) {
@@ -37,7 +54,7 @@
     }
 
     if (!isSupportedApiUrl(url)) {
-      return "Use an http or https API URL";
+      return "Use HTTPS or localhost over HTTP";
     }
 
     const message = error && typeof error.message === "string" ? error.message : "";
@@ -49,11 +66,12 @@
   }
 
   function normalizeVideoUrl(value) {
-    if (!value || typeof value !== "string") {
+    const url = safeUrl(value);
+    if (!url || url.protocol !== "https:") {
       return null;
     }
 
-    const trimmed = value.trim();
+    const trimmed = url.toString();
     if (!trimmed || trimmed.startsWith("blob:")) {
       return null;
     }
@@ -141,7 +159,11 @@
 
   async function savePost(fetchImpl, apiBase, apiKey, payload) {
     return fetchImpl(`${apiBase}/api/posts`, {
+      cache: "no-store",
+      credentials: "omit",
       method: "POST",
+      mode: "cors",
+      referrerPolicy: "no-referrer",
       headers: {
         "Content-Type": "application/json",
         "x-extension-key": apiKey,
@@ -155,6 +177,7 @@
     extractMedia,
     extractPost,
     getFetchErrorMessage,
+    getApiOriginPermissionPattern,
     getSettings,
     isSupportedApiUrl,
     normalizeApiBase,

@@ -5,6 +5,7 @@ const {
   renderEmbeddedTweet,
   renderFakeMetrics,
   renderMedia,
+  renderPostDetails,
   shouldUseEmbeddedTweet,
 } = window.TrumpOrNotClient;
 
@@ -50,7 +51,7 @@ init();
 
 async function init() {
   disableGuessing(true);
-  const savedKey = localStorage.getItem(STORAGE_KEY) || "";
+  const savedKey = sessionStorage.getItem(STORAGE_KEY) || "";
   if (savedKey) {
     adminKeyInput.value = savedKey;
     const unlocked = await loadReviewPost(false, savedKey);
@@ -83,14 +84,14 @@ async function saveAdminKey(event) {
     return;
   }
 
-  localStorage.setItem(STORAGE_KEY, key);
+  sessionStorage.setItem(STORAGE_KEY, key);
   setAdminStatus("Unlocked");
   closeAdminOverlay();
   saveAdminKeyBtn.disabled = false;
 }
 
 async function loadReviewPost(loadNextPost, overrideKey = null) {
-  const key = overrideKey || localStorage.getItem(STORAGE_KEY) || adminKeyInput.value.trim();
+  const key = overrideKey || sessionStorage.getItem(STORAGE_KEY) || adminKeyInput.value.trim();
   if (!key) {
     setAdminStatus("Admin key required", true);
     return false;
@@ -198,11 +199,7 @@ function submitGuess(userSaysReal) {
   result.textContent = correct ? "Correct." : "Nope.";
   result.style.color = correct ? "var(--real)" : "var(--fake)";
 
-  if (currentPost.source) {
-    details.innerHTML = `${currentPost.detail} <a href="${currentPost.source}" target="_blank" rel="noreferrer">Source</a>.`;
-  } else {
-    details.textContent = currentPost.detail;
-  }
+  renderPostDetails(details, currentPost.detail, currentPost.source);
 
   disableGuessing(true);
 }

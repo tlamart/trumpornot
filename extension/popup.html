@@ -49,7 +49,7 @@
     <h1>Extension Settings</h1>
 
     <div id="settingsPanel">
-      <p id="setupHint">Set the backend URL and extension key once. The X page buttons will reuse them for future saves.</p>
+      <p id="setupHint">Set the backend URL and extension key once. The extension will ask for access only to that backend origin.</p>
 
       <div class="row">
         <label for="apiBase">API Base URL</label>
@@ -58,7 +58,7 @@
 
       <div class="row">
         <label for="apiKey">Extension API Key</label>
-        <input id="apiKey" type="password" placeholder="change-me" />
+        <input id="apiKey" type="password" placeholder="Required" />
       </div>
 
       <button id="saveSettings" type="button">Save Settings</button>

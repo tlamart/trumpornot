@@ -5,6 +5,7 @@ const {
   renderEmbeddedTweet,
   renderFakeMetrics,
   renderMedia,
+  renderPostDetails,
   shouldUseEmbeddedTweet,
 } = window.TrumpOrNotClient;
 
@@ -49,7 +50,7 @@ init();
 
 async function init() {
   disableControls(true);
-  const savedKey = localStorage.getItem(STORAGE_KEY) || "";
+  const savedKey = sessionStorage.getItem(STORAGE_KEY) || "";
   if (savedKey) {
     betaKeyInput.value = savedKey;
     const unlocked = await loadPost(false, savedKey);
@@ -82,14 +83,14 @@ async function saveBetaKey(event) {
     return;
   }
 
-  localStorage.setItem(STORAGE_KEY, key);
+  sessionStorage.setItem(STORAGE_KEY, key);
   setBetaStatus("Unlocked");
   closeBetaOverlay();
   saveBetaKeyBtn.disabled = false;
 }
 
 async function loadPost(forceNext, overrideKey = null) {
-  const key = overrideKey || localStorage.getItem(STORAGE_KEY) || betaKeyInput.value.trim();
+  const key = overrideKey || sessionStorage.getItem(STORAGE_KEY) || betaKeyInput.value.trim();
   if (!key) {
     setBetaStatus("Beta key required", true);
     return false;
@@ -154,11 +155,7 @@ function submitGuess(userSaysReal) {
   result.textContent = correct ? "Correct." : "Nope.";
   result.style.color = correct ? "var(--real)" : "var(--fake)";
 
-  if (currentPost.source) {
-    details.innerHTML = `${currentPost.detail} <a href="${currentPost.source}" target="_blank" rel="noreferrer">Source</a>.`;
-  } else {
-    details.textContent = currentPost.detail;
-  }
+  renderPostDetails(details, currentPost.detail, currentPost.source);
 
   realBtn.disabled = true;
   fakeBtn.disabled = true;

@@ -1,4 +1,5 @@
 const {
+  getApiOriginPermissionPattern,
   getSettings,
   isSupportedApiUrl,
   normalizeApiBase,
@@ -29,7 +30,26 @@ async function saveSettings() {
   }
 
   if (!isSupportedApiUrl(apiBase)) {
-    setStatus("Use an http or https API URL", true);
+    setStatus("Use HTTPS or localhost over HTTP", true);
+    return;
+  }
+
+  const permissionPattern = getApiOriginPermissionPattern(apiBase);
+  if (!permissionPattern) {
+    setStatus("Backend permission pattern is invalid", true);
+    return;
+  }
+
+  const hasPermission = await browser.permissions.contains({
+    origins: [permissionPattern],
+  });
+
+  const granted = hasPermission || await browser.permissions.request({
+    origins: [permissionPattern],
+  });
+
+  if (!granted) {
+    setStatus(`Access to ${new URL(apiBase).origin} was not granted`, true);
     return;
   }
 

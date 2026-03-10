@@ -17,7 +17,7 @@ Daily game: user sees one post and guesses if it is real or fake.
 ```bash
 cd backend
 npm install
-EXTENSION_API_KEY=change-me npm start
+EXTENSION_API_KEY=replace-with-a-long-random-secret npm start
 ```
 
 Backend runs on `http://localhost:3000`.
@@ -81,9 +81,9 @@ App runs on port 8080 (configurable in `docker-compose.yml`).
 
 1. Click extension icon.
 2. On first use, set:
-   - API Base URL: `http://localhost:3000` (or your VPS URL)
+   - API Base URL: `http://localhost:3000` for local development, or an `https://` URL in production
    - Extension API Key: same as `EXTENSION_API_KEY`
-3. Click `Save Settings`.
+3. Click `Save Settings` and approve access to that backend origin when Firefox asks.
 4. Open X and wait for posts to render.
 5. Click `Save as Real` on any post you want to store.
 
@@ -104,6 +104,7 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 ## Configuration
 
 - `EXTENSION_API_KEY`: API key for the Firefox extension (required for POST requests)
+- `CORS_ALLOWED_ORIGINS`: optional comma-separated allowlist for browser origins that may call the API
 - `ADMIN_PAGE_KEY`: API key for admin endpoints (defaults to `EXTENSION_API_KEY`)
 - `BETA_PAGE_KEY`: API key for beta endpoints (defaults to `ADMIN_PAGE_KEY`)
 - `PORT`: Backend port (default: 3000, Docker: 8080)
@@ -112,7 +113,10 @@ For production, set these securely via environment variables or in `docker-compo
 
 ## Notes
 
-- Keep `EXTENSION_API_KEY` non-default in real usage.
+- `EXTENSION_API_KEY` is required and must not use the old `change-me` placeholder.
+- The extension now only accepts `https://` API URLs, except for `http://localhost` and `http://127.0.0.1` during local development.
+- The extension requests host access at runtime only for the specific backend origin you configure.
+- Beta and admin page keys are kept in `sessionStorage`, not persisted across browser restarts.
 - Current extension extraction targets single-post pages and may need updates if X DOM changes.
 - For VPS deployment, consider using Nginx as a reverse proxy or enabling HTTPS on port 8080.
 - SQLite database (`backend/data.db`) is persisted in Docker and should be backed up regularly.

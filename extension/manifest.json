@@ -5,10 +5,12 @@
   "description": "Capture X posts and save them to your TrumpOrNot database.",
   "permissions": [
     "activeTab",
-    "tabs",
     "storage",
-    "https://x.com/*",
-    "http://*/*",
+    "https://x.com/*"
+  ],
+  "optional_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
     "https://*/*"
   ],
   "browser_action": {

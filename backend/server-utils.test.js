@@ -4,7 +4,13 @@ import assert from "node:assert/strict";
 import {
   getUtcDayKey,
   hashToIndex,
+  normalizeAuthor,
   normalizeMedia,
+  normalizePostId,
+  normalizePostUrl,
+  normalizeSource,
+  normalizeStatus,
+  normalizeTimestamp,
   parseMedia,
   serializePost,
 } from "./server-utils.js";
@@ -51,15 +57,52 @@ test("normalizeMedia returns null when nothing usable is present", () => {
   assert.equal(normalizeMedia({ video: {} }), null);
 });
 
+test("normalizers reject unsupported sources and unsafe urls", () => {
+  assert.equal(normalizeSource("x"), "x");
+  assert.equal(normalizeSource("rss"), null);
+  assert.equal(normalizeStatus("approved"), "approved");
+  assert.equal(normalizeStatus("deleted"), null);
+  assert.equal(normalizePostId("123456"), "123456");
+  assert.equal(normalizePostId("abc"), null);
+  assert.equal(normalizeAuthor("realDonaldTrump"), "realDonaldTrump");
+  assert.equal(normalizeAuthor("bad handle"), null);
+  assert.equal(
+    normalizePostUrl("https://x.com/realDonaldTrump/status/1234567890"),
+    "https://x.com/realDonaldTrump/status/1234567890",
+  );
+  assert.equal(normalizePostUrl("javascript:alert(1)"), null);
+  assert.equal(normalizeTimestamp("2026-03-09T12:00:00.000Z"), "2026-03-09T12:00:00.000Z");
+  assert.equal(normalizeTimestamp("not-a-date"), null);
+});
+
 test("parseMedia returns null for invalid json", () => {
   assert.equal(parseMedia("{broken"), null);
+});
+
+test("parseMedia strips unsafe media urls from stored json", () => {
+  assert.deepEqual(
+    parseMedia(JSON.stringify({
+      images: [{ url: "javascript:alert(1)" }, { url: "https://example.com/a.jpg" }],
+      video: {
+        url: "https://example.com/video.mp4",
+        posterUrl: "data:text/html,boom",
+      },
+    })),
+    {
+      images: [{ url: "https://example.com/a.jpg" }],
+      video: {
+        url: "https://example.com/video.mp4",
+        posterUrl: null,
+      },
+    },
+  );
 });
 
 test("serializePost parses media_json into the API shape", () => {
   const row = {
     id: 42,
     text: "hello",
-    url: "https://example.com/post/42",
+    url: "https://x.com/realDonaldTrump/status/42",
     author: "realDonaldTrump",
     media_json: JSON.stringify({
       images: [{ url: "https://example.com/a.jpg" }],
@@ -71,12 +114,37 @@ test("serializePost parses media_json into the API shape", () => {
   assert.deepEqual(serializePost(row), {
     id: 42,
     text: "hello",
-    url: "https://example.com/post/42",
+    url: "https://x.com/realDonaldTrump/status/42",
     author: "realDonaldTrump",
     media: {
       images: [{ url: "https://example.com/a.jpg" }],
       video: null,
     },
     created_at: "2026-03-09T12:00:00.000Z",
+  });
+});
+
+test("serializePost drops unsafe legacy row values", () => {
+  const row = {
+    id: 7,
+    text: "legacy",
+    url: "javascript:alert(1)",
+    author: "bad handle",
+    media_json: JSON.stringify({
+      images: [{ url: "https://example.com/a.jpg" }, { url: "javascript:alert(1)" }],
+    }),
+    created_at: "not-a-date",
+  };
+
+  assert.deepEqual(serializePost(row), {
+    id: 7,
+    text: "legacy",
+    url: null,
+    author: null,
+    media: {
+      images: [{ url: "https://example.com/a.jpg" }],
+      video: null,
+    },
+    created_at: null,
   });
 });

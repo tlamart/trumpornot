@@ -54,6 +54,7 @@ const {
   renderEmbeddedTweet,
   renderFakeMetrics,
   renderMedia,
+  renderPostDetails,
   shouldUseEmbeddedTweet,
 } = window.TrumpOrNotClient;
 
@@ -115,15 +116,12 @@ function showResult(userSaysReal, post, fromStorage) {
   result.textContent = correct ? "Correct." : "Nope.";
   result.style.color = correct ? "var(--real)" : "var(--fake)";
 
-  if (post.source) {
-    details.innerHTML = `${post.detail} <a href="${post.source}" target="_blank" rel="noreferrer">Source</a>.`;
-  } else {
-    details.textContent = post.detail;
-  }
-
-  if (fromStorage) {
-    details.textContent += " You already guessed today.";
-  }
+  renderPostDetails(
+    details,
+    post.detail,
+    post.source,
+    fromStorage ? "You already guessed today." : "",
+  );
 
   realBtn.disabled = true;
   fakeBtn.disabled = true;

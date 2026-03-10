@@ -5,6 +5,30 @@ export function getUtcDayKey(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
+const HTTPS_PROTOCOLS = new Set(["https:"]);
+const SUPPORTED_POST_SOURCES = new Set(["x"]);
+const SUPPORTED_POST_STATUSES = new Set(["approved", "pending", "rejected"]);
+const SUPPORTED_POST_HOSTS = new Set([
+  "x.com",
+  "www.x.com",
+  "twitter.com",
+  "www.twitter.com",
+  "mobile.twitter.com",
+]);
+const MAX_MEDIA_ITEMS = 8;
+
+function safeUrl(value) {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    return new URL(value.trim());
+  } catch (_error) {
+    return null;
+  }
+}
+
 export function hashToIndex(str, mod) {
   let hash = 0;
   for (let i = 0; i < str.length; i += 1) {
@@ -13,13 +37,95 @@ export function hashToIndex(str, mod) {
   return hash % mod;
 }
 
+export function normalizeSource(source) {
+  if (typeof source !== "string") {
+    return null;
+  }
+
+  const normalized = source.trim().toLowerCase();
+  return SUPPORTED_POST_SOURCES.has(normalized) ? normalized : null;
+}
+
+export function normalizeStatus(status) {
+  if (typeof status !== "string") {
+    return null;
+  }
+
+  const normalized = status.trim().toLowerCase();
+  return SUPPORTED_POST_STATUSES.has(normalized) ? normalized : null;
+}
+
+export function normalizePostId(postId) {
+  if (postId == null) {
+    return null;
+  }
+
+  const normalized = String(postId).trim();
+  return /^\d{1,32}$/.test(normalized) ? normalized : null;
+}
+
+export function normalizeAuthor(author) {
+  if (author == null) {
+    return null;
+  }
+
+  const normalized = String(author).trim();
+  return /^[A-Za-z0-9_]{1,30}$/.test(normalized) ? normalized : null;
+}
+
+export function normalizeTimestamp(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const date = new Date(value.trim());
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
+}
+
+function normalizeHttpsUrl(value) {
+  const url = safeUrl(value);
+  if (!url || !HTTPS_PROTOCOLS.has(url.protocol)) {
+    return null;
+  }
+
+  return url.toString();
+}
+
+export function normalizePostUrl(value) {
+  const normalized = normalizeHttpsUrl(value);
+  if (!normalized) {
+    return null;
+  }
+
+  const url = new URL(normalized);
+  if (!SUPPORTED_POST_HOSTS.has(url.hostname.toLowerCase())) {
+    return null;
+  }
+
+  return /^\/[^/]+\/status\/\d+(?:\/)?$/i.test(url.pathname) ? normalized : null;
+}
+
 export function normalizeMedia(media) {
   if (!media || typeof media !== "object") {
     return null;
   }
 
   const images = Array.isArray(media.images)
-    ? media.images.filter((item) => item && typeof item.url === "string")
+    ? media.images
+        .map((item) => {
+          const url = normalizeHttpsUrl(item && item.url);
+          return url ? { url } : null;
+        })
+        .filter(Boolean)
+        .slice(0, MAX_MEDIA_ITEMS)
     : [];
 
   const video = media.video && typeof media.video === "object" ? media.video : null;
@@ -27,18 +133,20 @@ export function normalizeMedia(media) {
     typeof video.posterUrl === "string" || typeof video.url === "string"
   )
     ? {
-        url: typeof video.url === "string" ? video.url : null,
-        posterUrl: typeof video.posterUrl === "string" ? video.posterUrl : null,
+        url: normalizeHttpsUrl(video.url),
+        posterUrl: normalizeHttpsUrl(video.posterUrl),
       }
     : null;
 
-  if (!images.length && !normalizedVideo) {
+  const hasVideo = normalizedVideo && (normalizedVideo.posterUrl || normalizedVideo.url);
+
+  if (!images.length && !hasVideo) {
     return null;
   }
 
   return {
     images,
-    video: normalizedVideo,
+    video: hasVideo ? normalizedVideo : null,
   };
 }
 
@@ -48,7 +156,7 @@ export function parseMedia(mediaJson) {
   }
 
   try {
-    return JSON.parse(mediaJson);
+    return normalizeMedia(JSON.parse(mediaJson));
   } catch (_error) {
     return null;
   }
@@ -58,9 +166,9 @@ export function serializePost(row) {
   return {
     id: row.id,
     text: row.text,
-    url: row.url,
-    author: row.author,
+    url: normalizePostUrl(row.url),
+    author: normalizeAuthor(row.author),
     media: parseMedia(row.media_json),
-    created_at: row.created_at,
+    created_at: normalizeTimestamp(row.created_at),
   };
 }

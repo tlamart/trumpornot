@@ -4,6 +4,14 @@
     "@POTUS",
     "@WhiteHouse",
   ]);
+  const HTTPS_PROTOCOLS = new Set(["https:"]);
+  const SAFE_POST_HOSTS = new Set([
+    "x.com",
+    "www.x.com",
+    "twitter.com",
+    "www.twitter.com",
+    "mobile.twitter.com",
+  ]);
 
   function getApiBase() {
     const configuredBase =
@@ -77,28 +85,92 @@
   }
 
   function canRenderVideoUrl(url) {
-    if (!url || typeof url !== "string") {
+    const normalized = normalizeHttpsUrl(url);
+    if (!normalized) {
       return false;
     }
 
-    const trimmed = url.trim();
-    if (!trimmed || trimmed.startsWith("blob:")) {
-      return false;
+    return /\.(mp4|webm|ogg)(\?|#|$)/i.test(normalized);
+  }
+
+  function safeUrl(value) {
+    if (!value || typeof value !== "string") {
+      return null;
     }
 
-    return /\.(mp4|webm|ogg)(\?|#|$)/i.test(trimmed);
+    try {
+      return new URL(value.trim());
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function normalizeHttpsUrl(value) {
+    const url = safeUrl(value);
+    if (!url || !HTTPS_PROTOCOLS.has(url.protocol)) {
+      return null;
+    }
+
+    return url.toString();
+  }
+
+  function normalizePostSourceUrl(value) {
+    const normalized = normalizeHttpsUrl(value);
+    if (!normalized) {
+      return null;
+    }
+
+    const url = new URL(normalized);
+    if (!SAFE_POST_HOSTS.has(url.hostname.toLowerCase())) {
+      return null;
+    }
+
+    return /^\/[^/]+\/status\/\d+(?:\/)?$/i.test(url.pathname) ? normalized : null;
+  }
+
+  function normalizeRenderableMedia(media) {
+    if (!media || typeof media !== "object") {
+      return null;
+    }
+
+    const images = Array.isArray(media.images)
+      ? media.images
+          .map((image) => {
+            const url = normalizeHttpsUrl(image && image.url);
+            return url ? { url } : null;
+          })
+          .filter(Boolean)
+      : [];
+
+    const video = media.video && typeof media.video === "object"
+      ? {
+          url: normalizeHttpsUrl(media.video.url),
+          posterUrl: normalizeHttpsUrl(media.video.posterUrl),
+        }
+      : null;
+    const normalizedVideo = video && (video.url || video.posterUrl) ? video : null;
+
+    if (!images.length && !normalizedVideo) {
+      return null;
+    }
+
+    return {
+      images,
+      video: normalizedVideo,
+    };
   }
 
   function renderMedia(postMedia, media) {
+    const normalizedMedia = normalizeRenderableMedia(media);
     postMedia.innerHTML = "";
-    postMedia.classList.toggle("hidden", !media);
+    postMedia.classList.toggle("hidden", !normalizedMedia);
 
-    if (!media) {
+    if (!normalizedMedia) {
       return;
     }
 
-    if (Array.isArray(media.images)) {
-      media.images.forEach((image) => {
+    if (Array.isArray(normalizedMedia.images)) {
+      normalizedMedia.images.forEach((image) => {
         if (!image || !image.url) {
           return;
         }
@@ -112,24 +184,24 @@
       });
     }
 
-    if (media.video && (media.video.url || media.video.posterUrl)) {
-      if (canRenderVideoUrl(media.video.url)) {
+    if (normalizedMedia.video && (normalizedMedia.video.url || normalizedMedia.video.posterUrl)) {
+      if (canRenderVideoUrl(normalizedMedia.video.url)) {
         const video = document.createElement("video");
         video.className = "x-media-video";
-        video.src = media.video.url;
-        if (media.video.posterUrl) {
-          video.poster = media.video.posterUrl;
+        video.src = normalizedMedia.video.url;
+        if (normalizedMedia.video.posterUrl) {
+          video.poster = normalizedMedia.video.posterUrl;
         }
         video.controls = true;
         video.preload = "metadata";
         postMedia.appendChild(video);
-      } else if (media.video.posterUrl) {
+      } else if (normalizedMedia.video.posterUrl) {
         const wrapper = document.createElement("div");
         wrapper.className = "x-media-video-poster";
 
         const poster = document.createElement("img");
         poster.className = "x-media-image";
-        poster.src = media.video.posterUrl;
+        poster.src = normalizedMedia.video.posterUrl;
         poster.alt = "Video preview";
         wrapper.appendChild(poster);
 
@@ -146,19 +218,24 @@
   }
 
   function shouldUseEmbeddedTweet(post) {
-    return Boolean(post && post.source && post.media && post.media.video);
+    return Boolean(post && normalizePostSourceUrl(post.source) && post.media && post.media.video);
   }
 
   async function renderEmbeddedTweet(embedContainer, sourceUrl) {
+    const normalizedSourceUrl = normalizePostSourceUrl(sourceUrl);
     embedContainer.innerHTML = "";
-    embedContainer.classList.remove("hidden");
+    embedContainer.classList.toggle("hidden", !normalizedSourceUrl);
+
+    if (!normalizedSourceUrl) {
+      return;
+    }
 
     const blockquote = document.createElement("blockquote");
     blockquote.className = "twitter-tweet";
     blockquote.setAttribute("data-media-max-width", "560");
 
     const link = document.createElement("a");
-    link.href = toTwitterStatusUrl(sourceUrl);
+    link.href = toTwitterStatusUrl(normalizedSourceUrl);
     blockquote.appendChild(link);
     embedContainer.appendChild(blockquote);
 
@@ -169,7 +246,45 @@
   }
 
   function toTwitterStatusUrl(url) {
-    return url.replace("https://x.com/", "https://twitter.com/");
+    const normalized = normalizePostSourceUrl(url);
+    if (!normalized) {
+      return null;
+    }
+
+    const parsed = new URL(normalized);
+    parsed.hostname = "twitter.com";
+    return parsed.toString();
+  }
+
+  function renderPostDetails(container, detailText, sourceUrl, trailingText = "") {
+    const normalizedSourceUrl = normalizePostSourceUrl(sourceUrl);
+    container.textContent = "";
+
+    const safeDetail = typeof detailText === "string" ? detailText.trim() : "";
+    if (safeDetail) {
+      container.append(document.createTextNode(safeDetail));
+    }
+
+    if (normalizedSourceUrl) {
+      if (safeDetail) {
+        container.append(document.createTextNode(" "));
+      }
+
+      const link = document.createElement("a");
+      link.href = normalizedSourceUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Source";
+      container.append(link);
+      container.append(document.createTextNode("."));
+    }
+
+    if (trailingText) {
+      if (container.childNodes.length) {
+        container.append(document.createTextNode(" "));
+      }
+      container.append(document.createTextNode(trailingText));
+    }
   }
 
   async function ensureTwitterWidgets() {
@@ -216,7 +331,9 @@
     getUtcDayKey,
     hashToIndex,
     isVerifiedHandle,
+    normalizePostSourceUrl,
     renderEmbeddedTweet,
+    renderPostDetails,
     renderFakeMetrics,
     renderMedia,
     shouldUseEmbeddedTweet,
