@@ -8,6 +8,10 @@ services:
       - ADMIN_PAGE_KEY=${ADMIN_PAGE_KEY}
       - BETA_PAGE_KEY=${BETA_PAGE_KEY}
       - PORT=8080
+      - DB_DIR=/app/backend/data
     volumes:
-      - ./backend/data.db:/app/backend/data.db  # Persist SQLite database
+      - sqlite-data:/app/backend/data
     restart: unless-stopped
+
+volumes:
+  sqlite-data:

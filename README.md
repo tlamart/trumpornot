@@ -89,7 +89,7 @@ App runs on port 8080 (configurable in `docker-compose.yml`).
 
 After that, each X post gets an inline `Save as Real` button. On Truth Social post pages (`/@handle/posts/<id>`), the extension adds a floating `Save as Real` button and fetches the post payload from Truth Social's status API before saving it. The page buttons reuse the saved API base URL and API key.
 
-Saved post is inserted/upserted into SQLite (`backend/data.db`).
+Saved post is inserted/upserted into SQLite (`/app/backend/data/data.db` in Docker, `backend/data.db` locally by default).
 Posts can now include text-only, image, or video content. Media-only posts are accepted too.
 
 ## API
@@ -110,6 +110,7 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 - `ADMIN_PAGE_KEY`: API key for admin endpoints (defaults to `EXTENSION_API_KEY`)
 - `BETA_PAGE_KEY`: API key for beta endpoints (defaults to `ADMIN_PAGE_KEY`)
 - `PORT`: Backend port (default: 3000, Docker: 8080)
+- `DB_DIR`: optional directory for SQLite files (`data.db`, `data.db-wal`, `data.db-shm`)
 
 For production, set these securely via environment variables or in `docker-compose.yml`.
 
@@ -121,4 +122,4 @@ For production, set these securely via environment variables or in `docker-compo
 - Beta and admin page keys are kept in `sessionStorage`, not persisted across browser restarts.
 - Current extension extraction targets single-post pages and may need updates if X DOM changes.
 - For VPS deployment, consider using Nginx as a reverse proxy or enabling HTTPS on port 8080.
-- SQLite database (`backend/data.db`) is persisted in Docker and should be backed up regularly.
+- SQLite database files are persisted in Docker via the `sqlite-data` volume and should be backed up regularly.
