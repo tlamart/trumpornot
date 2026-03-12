@@ -1,6 +1,7 @@
 const {
   formatPostTime,
   getApiBase,
+  getPresentedHandle,
   isVerifiedHandle,
   renderEmbeddedTweet,
   renderFakeMetrics,
@@ -135,7 +136,7 @@ async function loadPost(forceNext, overrideKey = null) {
     source: data.post.url || null,
     media: data.post.media || null,
     displayName: "Donald J. Trump",
-    handle: data.post.author ? `@${data.post.author}` : "@realDonaldTrump",
+    handle: getPresentedHandle(data.post.author, Boolean(data.answer.is_real)),
     createdAt: data.post.created_at || null,
   };
 

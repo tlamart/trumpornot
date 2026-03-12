@@ -64,6 +64,10 @@
     return VERIFIED_HANDLES.has(handle.trim());
   }
 
+  function getPresentedHandle(author, isReal) {
+    return isReal && author ? `@${author}` : "@realDonaldTrump";
+  }
+
   function rangedNumber(seed, min, max) {
     return min + hashToIndex(seed, max - min + 1);
   }
@@ -235,7 +239,13 @@
   }
 
   function shouldUseEmbeddedTweet(post) {
-    return Boolean(post && isXPostSourceUrl(post.source) && post.media && post.media.video);
+    return Boolean(
+      post
+      && post.isReal
+      && isXPostSourceUrl(post.source)
+      && post.media
+      && post.media.video,
+    );
   }
 
   async function renderEmbeddedTweet(embedContainer, sourceUrl) {
@@ -355,4 +365,5 @@
     renderMedia,
     shouldUseEmbeddedTweet,
   };
+    getPresentedHandle,
 })();
