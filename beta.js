@@ -12,6 +12,7 @@ const {
 
 const API_BASE = getApiBase();
 const STORAGE_KEY = "betaPageKey";
+const STREAK_STORAGE_KEY = "betaGoodAnswerStreak";
 
 const betaOverlay = document.getElementById("betaOverlay");
 const betaOverlayForm = document.getElementById("betaOverlayForm");
@@ -20,6 +21,7 @@ const saveBetaKeyBtn = document.getElementById("saveBetaKeyBtn");
 const changeBetaKeyBtn = document.getElementById("changeBetaKeyBtn");
 const betaStatus = document.getElementById("betaStatus");
 const dateLabel = document.getElementById("dateLabel");
+const streakValue = document.getElementById("streakValue");
 const embedContainer = document.getElementById("embedContainer");
 const postText = document.getElementById("postText");
 const xDisplayName = document.getElementById("xDisplayName");
@@ -51,6 +53,7 @@ init();
 
 async function init() {
   disableControls(true);
+  updateStreakDisplay(getStreak());
   const savedKey = sessionStorage.getItem(STORAGE_KEY) || "";
   if (savedKey) {
     betaKeyInput.value = savedKey;
@@ -153,7 +156,9 @@ function submitGuess(userSaysReal) {
   }
 
   const correct = userSaysReal === currentPost.isReal;
-  result.textContent = correct ? "Correct." : "Nope.";
+  const nextStreak = correct ? getStreak() + 1 : 0;
+  setStreak(nextStreak);
+  result.textContent = correct ? "Correct." : "Nope. Streak reset to 0.";
   result.style.color = correct ? "var(--real)" : "var(--fake)";
 
   renderPostDetails(details, currentPost.detail, currentPost.source);
@@ -211,6 +216,21 @@ function disableControls(disabled) {
 function setBetaStatus(message, isError = false) {
   betaStatus.textContent = message;
   betaStatus.classList.toggle("error", isError);
+}
+
+function getStreak() {
+  const rawValue = Number.parseInt(localStorage.getItem(STREAK_STORAGE_KEY) || "0", 10);
+  return Number.isNaN(rawValue) || rawValue < 0 ? 0 : rawValue;
+}
+
+function setStreak(value) {
+  const normalizedValue = Math.max(0, value);
+  localStorage.setItem(STREAK_STORAGE_KEY, String(normalizedValue));
+  updateStreakDisplay(normalizedValue);
+}
+
+function updateStreakDisplay(streak) {
+  streakValue.textContent = String(Math.max(0, streak));
 }
 
 function openBetaOverlay(message, isError = false) {

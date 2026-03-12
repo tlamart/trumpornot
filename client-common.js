@@ -355,6 +355,7 @@
   window.TrumpOrNotClient = {
     formatPostTime,
     getApiBase,
+    getPresentedHandle,
     getUtcDayKey,
     hashToIndex,
     isVerifiedHandle,
@@ -365,5 +366,4 @@
     renderMedia,
     shouldUseEmbeddedTweet,
   };
-    getPresentedHandle,
 })();

@@ -71,6 +71,13 @@ h1 {
   font-size: 0.9rem;
 }
 
+.streak-label {
+  margin: 0 0 0.9rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .x-post {
   margin: 0;
   background: var(--x-bg);

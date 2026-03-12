@@ -60,8 +60,10 @@ const {
 } = window.TrumpOrNotClient;
 
 const API_BASE = getApiBase();
+const STREAK_STORAGE_KEY = "dailyGoodAnswerStreak";
 
 const dateLabel = document.getElementById("dateLabel");
+const streakValue = document.getElementById("streakValue");
 const embedContainer = document.getElementById("embedContainer");
 const postText = document.getElementById("postText");
 const xDisplayName = document.getElementById("xDisplayName");
@@ -84,6 +86,7 @@ async function render() {
   const todayKey = daily.day;
   const todayPost = daily.post;
   const storedGuess = localStorage.getItem(`guess:${todayKey}`);
+  updateStreakDisplay(getStreak());
 
   const date = new Date();
   dateLabel.textContent = `Date: ${date.toLocaleDateString(undefined, {
@@ -108,14 +111,18 @@ async function render() {
 }
 
 function submitGuess(userSaysReal, post, todayKey) {
+  const correct = userSaysReal === post.isReal;
+  const nextStreak = correct ? getStreak() + 1 : 0;
+  setStreak(nextStreak);
   localStorage.setItem(`guess:${todayKey}`, userSaysReal ? "real" : "fake");
-  showResult(userSaysReal, post, false);
+  showResult(userSaysReal, post, false, nextStreak);
 }
 
-function showResult(userSaysReal, post, fromStorage) {
+function showResult(userSaysReal, post, fromStorage, streak = getStreak()) {
   const correct = userSaysReal === post.isReal;
-  result.textContent = correct ? "Correct." : "Nope.";
+  result.textContent = correct ? "Correct." : "Nope. Streak reset to 0.";
   result.style.color = correct ? "var(--real)" : "var(--fake)";
+  updateStreakDisplay(streak);
 
   renderPostDetails(
     details,
@@ -126,6 +133,21 @@ function showResult(userSaysReal, post, fromStorage) {
 
   realBtn.disabled = true;
   fakeBtn.disabled = true;
+}
+
+function getStreak() {
+  const rawValue = Number.parseInt(localStorage.getItem(STREAK_STORAGE_KEY) || "0", 10);
+  return Number.isNaN(rawValue) || rawValue < 0 ? 0 : rawValue;
+}
+
+function setStreak(value) {
+  const normalizedValue = Math.max(0, value);
+  localStorage.setItem(STREAK_STORAGE_KEY, String(normalizedValue));
+  updateStreakDisplay(normalizedValue);
+}
+
+function updateStreakDisplay(streak) {
+  streakValue.textContent = String(Math.max(0, streak));
 }
 
 render();
