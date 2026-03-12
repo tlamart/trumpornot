@@ -5,7 +5,6 @@
   "description": "Capture X and Truth Social posts and save them to your TrumpOrNot database.",
   "permissions": [
     "activeTab",
-    "permissions",
     "storage",
     "https://trumpornot.tlam.art/*",
     "https://x.com/*",

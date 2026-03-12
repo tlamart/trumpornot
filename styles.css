@@ -168,7 +168,9 @@ h1 {
   border-radius: 16px;
   border: 1px solid var(--x-border);
   background: #d8dee3;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
   max-height: 420px;
 }
 

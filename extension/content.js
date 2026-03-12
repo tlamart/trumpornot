@@ -1,4 +1,5 @@
-const BUTTON_CLASS = "trumpornot-save-real-btn";
+const BUTTON_CLASS = "trumpornot-save-btn";
+const BUTTON_ROW_CLASS = "trumpornot-save-row";
 const STYLE_ID = "trumpornot-inline-style";
 const TOAST_ID = "trumpornot-inline-toast";
 const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
@@ -85,19 +86,35 @@ function injectStyles() {
   const style = document.createElement("style");
   style.id = STYLE_ID;
   style.textContent = `
+    .${BUTTON_ROW_CLASS} {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .${BUTTON_CLASS} {
       border: 0;
       border-radius: 999px;
       padding: 6px 12px;
-      background: #0a7b5a;
       color: #fff;
       font: 600 13px/1.2 sans-serif;
       cursor: pointer;
-      margin-left: 8px;
     }
 
-    .${BUTTON_CLASS}:hover {
+    .${BUTTON_CLASS}[data-variant="real"] {
+      background: #0a7b5a;
+    }
+
+    .${BUTTON_CLASS}[data-variant="real"]:hover {
       background: #08664b;
+    }
+
+    .${BUTTON_CLASS}[data-variant="fake"] {
+      background: #8c2d2d;
+    }
+
+    .${BUTTON_CLASS}[data-variant="fake"]:hover {
+      background: #6f2323;
     }
 
     .${BUTTON_CLASS}[disabled] {
@@ -145,7 +162,7 @@ function scanPosts(rootNode) {
   });
 }
 
-async function saveArticle(button, article) {
+async function saveArticle(button, article, isReal) {
   showToast("Saving post...");
 
   let post;
@@ -154,7 +171,7 @@ async function saveArticle(button, article) {
   } catch (error) {
     console.error("[TrumpOrNot] Extraction failed", error);
     showToast(error && error.message ? error.message : "Unable to read post", true);
-    restoreButton(button, "Save as Real", "Try again", true);
+    restoreButton(button, getButtonLabel(isReal), "Try again", true);
     return;
   }
 
@@ -164,10 +181,10 @@ async function saveArticle(button, article) {
     return;
   }
 
-  await saveArticlePayload(button, post);
+  await saveArticlePayload(button, post, isReal);
 }
 
-async function saveTruthSocialPage(button, article) {
+async function saveTruthSocialPage(button, article, isReal) {
   showToast("Saving post...");
 
   let post;
@@ -180,7 +197,7 @@ async function saveTruthSocialPage(button, article) {
   } catch (error) {
     console.error("[TrumpOrNot] Truth Social extraction failed", error);
     showToast(error && error.message ? error.message : "Unable to load post", true);
-    restoreButton(button, "Save as Real", "Try again", true);
+    restoreButton(button, getButtonLabel(isReal), "Try again", true);
     return;
   }
 
@@ -190,10 +207,10 @@ async function saveTruthSocialPage(button, article) {
     return;
   }
 
-  await saveArticlePayload(button, post);
+  await saveArticlePayload(button, post, isReal);
 }
 
-async function saveArticlePayload(button, post) {
+async function saveArticlePayload(button, post, isReal) {
   const { apiBase, apiKey } = await getSettings(browser.storage);
 
   if (!apiBase || !apiKey) {
@@ -202,7 +219,7 @@ async function saveArticlePayload(button, post) {
     return;
   }
 
-  const payload = buildSavePayload(post, siteKind);
+  const payload = buildSavePayload(post, siteKind, isReal);
 
   const originalText = button.textContent;
   button.disabled = true;
@@ -229,10 +246,10 @@ async function saveArticlePayload(button, post) {
 
   button.textContent = "Saved";
   button.disabled = true;
-  showToast("Post saved");
+  showToast(`Post saved as ${isReal ? "real" : "fake"}`);
 }
 
-function buildSavePayload(post, source) {
+function buildSavePayload(post, source, isReal) {
   return {
     source,
     post_id: post.id,
@@ -241,7 +258,7 @@ function buildSavePayload(post, source) {
     author: post.author,
     media: post.media,
     created_at: post.createdAt,
-    is_real: true,
+    is_real: isReal,
     status: "approved",
   };
 }
@@ -260,7 +277,8 @@ function restoreButton(button, originalText, nextText, isError) {
 }
 
 function flashButton(button, text, isError) {
-  restoreButton(button, "Save as Real", text, isError);
+  const isReal = button.dataset.variant !== "fake";
+  restoreButton(button, getButtonLabel(isReal), text, isError);
 }
 
 function enhanceArticle(article) {
@@ -273,13 +291,7 @@ function enhanceArticle(article) {
     return;
   }
 
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = BUTTON_CLASS;
-  button.textContent = "Save as Real";
-  bindSaveButton(button, () => saveArticle(button, article));
-
-  actionBar.appendChild(button);
+  actionBar.appendChild(createSaveButtonRow((button, isReal) => saveArticle(button, article, isReal)));
   article.dataset[ENHANCED_ATTR] = "true";
 }
 
@@ -305,15 +317,33 @@ function enhanceTruthSocialPost(container) {
     return;
   }
 
+  container.dataset.trumpornotPostUrl = postUrl;
+  mount.appendChild(createSaveButtonRow((button, isReal) => saveTruthSocialPage(button, container, isReal)));
+  container.dataset[ENHANCED_ATTR] = "true";
+}
+
+function createSaveButtonRow(onSave) {
+  const row = document.createElement("div");
+  row.className = BUTTON_ROW_CLASS;
+
+  row.appendChild(createSaveButton("real", true, onSave));
+  row.appendChild(createSaveButton("fake", false, onSave));
+
+  return row;
+}
+
+function createSaveButton(variant, isReal, onSave) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = BUTTON_CLASS;
-  button.textContent = "Save as Real";
-  bindSaveButton(button, () => saveTruthSocialPage(button, container));
+  button.dataset.variant = variant;
+  button.textContent = getButtonLabel(isReal);
+  bindSaveButton(button, () => onSave(button, isReal));
+  return button;
+}
 
-  container.dataset.trumpornotPostUrl = postUrl;
-  mount.appendChild(button);
-  container.dataset[ENHANCED_ATTR] = "true";
+function getButtonLabel(isReal) {
+  return isReal ? "Save as Real" : "Save as Fake";
 }
 
 function bindSaveButton(button, onSave) {
