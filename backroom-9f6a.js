@@ -306,10 +306,41 @@ function submitGuess(userSaysReal) {
   }
 
   const correct = userSaysReal === currentPost.isReal;
+  void reportGuess({
+    mode: "admin",
+    postId: currentPost.id,
+    guessIsReal: userSaysReal,
+    answerIsReal: currentPost.isReal,
+  });
   result.textContent = correct ? "Correct." : "Nope.";
   result.style.color = correct ? "var(--real)" : "var(--fake)";
   renderPostDetails(details, currentPost.detail, currentPost.source);
   disableGuessing(true);
+}
+
+async function reportGuess({
+  mode,
+  postId = null,
+  guessIsReal,
+  answerIsReal,
+}) {
+  try {
+    await fetch(`${API_BASE}/api/guesses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      keepalive: true,
+      body: JSON.stringify({
+        mode,
+        post_id: postId,
+        guess_is_real: guessIsReal,
+        answer_is_real: answerIsReal,
+      }),
+    });
+  } catch (_error) {
+    // Guess reporting should not block the review UI.
+  }
 }
 
 async function loadPostsList(offset, overrideKey = null) {

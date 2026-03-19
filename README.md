@@ -97,6 +97,7 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 - `GET /api/health`
 - `POST /api/posts` (requires header `x-extension-key`)
 - `GET /api/daily`
+- `POST /api/guesses`
 - `GET /beta`
 - `GET /api/beta/next` (requires header `x-beta-key`)
 - `GET /api/admin/review` (requires header `x-admin-key`)
@@ -109,6 +110,8 @@ Posts can now include text-only, image, or video content. Media-only posts are a
 - `CORS_ALLOWED_ORIGINS`: optional comma-separated allowlist for browser origins that may call the API
 - `ADMIN_PAGE_KEY`: API key for admin endpoints (defaults to `EXTENSION_API_KEY`)
 - `BETA_PAGE_KEY`: API key for beta endpoints (defaults to `ADMIN_PAGE_KEY`)
+- `EVENTS_API_URL`: event sink URL for guess notifications (default: `http://localhost:4000/api/events`)
+- `EVENTS_API_KEY`: API key sent as `x-api-key` when forwarding guess notifications
 - `PORT`: Backend port (default: 3000, Docker: 8080)
 - `DB_DIR`: optional directory for SQLite files (`data.db`, `data.db-wal`, `data.db-shm`)
 

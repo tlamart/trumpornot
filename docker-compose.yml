@@ -7,6 +7,8 @@ services:
       - EXTENSION_API_KEY=${EXTENSION_API_KEY}
       - ADMIN_PAGE_KEY=${ADMIN_PAGE_KEY}
       - BETA_PAGE_KEY=${BETA_PAGE_KEY}
+      - EVENTS_API_URL=${EVENTS_API_URL}
+      - EVENTS_API_KEY=${EVENTS_API_KEY}
       - PORT=8080
       - DB_DIR=/app/backend/data
     volumes:

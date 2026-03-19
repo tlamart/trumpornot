@@ -30,6 +30,8 @@ const adminPageKey = process.env.ADMIN_PAGE_KEY
 const betaPageKey = process.env.BETA_PAGE_KEY
   ? requireApiKey("BETA_PAGE_KEY", process.env.BETA_PAGE_KEY)
   : adminPageKey;
+const eventsApiUrl = normalizeEventApiUrl(process.env.EVENTS_API_URL || "http://localhost:4000/api/events");
+const eventsApiKey = optionalApiKey("EVENTS_API_KEY", process.env.EVENTS_API_KEY);
 const allowedOrigins = getAllowedOrigins(process.env.CORS_ALLOWED_ORIGINS);
 const SECURITY_HEADERS = {
   "Content-Security-Policy": [
@@ -128,6 +130,31 @@ function requireApiKey(name, value) {
   return normalized;
 }
 
+function optionalApiKey(name, value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  return requireApiKey(name, value);
+}
+
+function normalizeEventApiUrl(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+
+    return url.toString();
+  } catch (_error) {
+    return null;
+  }
+}
+
 function getAllowedOrigins(value) {
   const defaults = [
     "http://localhost:8000",
@@ -222,8 +249,90 @@ function parsePositiveInt(value, fallback, max) {
   return Math.min(parsed, max);
 }
 
+function normalizeGuessMode(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return ["daily", "beta", "admin"].includes(normalized) ? normalized : null;
+}
+
+function normalizeRequesterIp(value) {
+  if (typeof value !== "string") {
+    return "unknown";
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return "unknown";
+  }
+
+  return normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+}
+
+async function sendGuessEvent({ mode, guessedReal, answerReal, requesterIp }) {
+  if (!eventsApiUrl || !eventsApiKey) {
+    return;
+  }
+
+  const channel = mode === "daily" ? "user" : mode;
+  const correct = guessedReal === answerReal;
+  const outcome = correct ? "right" : "wrong";
+
+  try {
+    const response = await fetch(eventsApiUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": eventsApiKey,
+      },
+      body: JSON.stringify({
+        channel,
+        title: correct ? "Right answer" : "Wrong answer",
+        description: `received from ${requesterIp}`,
+        icon: correct ? "✅" : "❌",
+        tags: [outcome, channel],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Guess event request failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Guess event request failed", error);
+  }
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+app.post("/api/guesses", (req, res) => {
+  const mode = normalizeGuessMode(req.body && req.body.mode);
+  const guessedReal = req.body && req.body.guess_is_real;
+  const answerReal = req.body && req.body.answer_is_real;
+  const requesterIp = normalizeRequesterIp(req.ip);
+
+  if (!mode) {
+    return res.status(400).json({ error: "mode must be one of daily, beta, or admin" });
+  }
+
+  if (typeof guessedReal !== "boolean") {
+    return res.status(400).json({ error: "guess_is_real must be boolean" });
+  }
+
+  if (typeof answerReal !== "boolean") {
+    return res.status(400).json({ error: "answer_is_real must be boolean" });
+  }
+
+  res.status(202).json({ ok: true });
+  void sendGuessEvent({
+    mode,
+    guessedReal,
+    answerReal,
+    requesterIp,
+  });
 });
 
 app.get("/beta", (_req, res) => {

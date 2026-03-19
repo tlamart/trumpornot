@@ -158,6 +158,12 @@ function submitGuess(userSaysReal) {
   const correct = userSaysReal === currentPost.isReal;
   const nextStreak = correct ? getStreak() + 1 : 0;
   setStreak(nextStreak);
+  void reportGuess({
+    mode: "beta",
+    postId: currentPost.id,
+    guessIsReal: userSaysReal,
+    answerIsReal: currentPost.isReal,
+  });
   result.textContent = correct ? "Correct." : "Nope. Streak reset to 0.";
   result.style.color = correct ? "var(--real)" : "var(--fake)";
 
@@ -238,6 +244,31 @@ function openBetaOverlay(message, isError = false) {
   betaKeyInput.focus();
   betaKeyInput.select();
   setBetaStatus(message, isError);
+}
+
+async function reportGuess({
+  mode,
+  postId = null,
+  guessIsReal,
+  answerIsReal,
+}) {
+  try {
+    await fetch(`${API_BASE}/api/guesses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      keepalive: true,
+      body: JSON.stringify({
+        mode,
+        post_id: postId,
+        guess_is_real: guessIsReal,
+        answer_is_real: answerIsReal,
+      }),
+    });
+  } catch (_error) {
+    // Guess reporting should not block the game UI.
+  }
 }
 
 function closeBetaOverlay() {

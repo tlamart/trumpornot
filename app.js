@@ -115,6 +115,13 @@ function submitGuess(userSaysReal, post, todayKey) {
   const nextStreak = correct ? getStreak() + 1 : 0;
   setStreak(nextStreak);
   localStorage.setItem(`guess:${todayKey}`, userSaysReal ? "real" : "fake");
+  void reportGuess({
+    mode: "daily",
+    day: todayKey,
+    postId: post.id,
+    guessIsReal: userSaysReal,
+    answerIsReal: post.isReal,
+  });
   showResult(userSaysReal, post, false, nextStreak);
 }
 
@@ -163,6 +170,7 @@ async function getDailyPost(todayKey) {
     return {
       day: data.day || todayKey,
       post: {
+        id: data.post.id || null,
         text: data.post.text,
         isReal: Boolean(data.answer.is_real),
         detail: "From your curated database.",
@@ -231,4 +239,31 @@ async function renderPostPresentation(post, metricSeed) {
     metricSeed,
     post.text,
   );
+}
+
+async function reportGuess({
+  mode,
+  day = null,
+  postId = null,
+  guessIsReal,
+  answerIsReal,
+}) {
+  try {
+    await fetch(`${API_BASE}/api/guesses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      keepalive: true,
+      body: JSON.stringify({
+        mode,
+        day,
+        post_id: postId,
+        guess_is_real: guessIsReal,
+        answer_is_real: answerIsReal,
+      }),
+    });
+  } catch (_error) {
+    // Guess reporting should not block the game UI.
+  }
 }
